@@ -104,6 +104,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:description", content: "Flux is a dynamic PWA productivity dashboard that visualizes time consistency and gamifies discipline." },
       { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/f8o7rLdvk2cTJ48XR1EEOlJBErS2/social-images/social-1780587543373-Gemini_Generated_Image_3blzxx3blzxx3blz.webp" },
       { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/f8o7rLdvk2cTJ48XR1EEOlJBErS2/social-images/social-1780587543373-Gemini_Generated_Image_3blzxx3blzxx3blz.webp" },
+      { name: "google-site-verification", content: "oVfAg5Y-ZTcYeHUU5LzIaU-pzH7zfSw6JcK2dhZqpmA" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
