@@ -58,7 +58,7 @@ export function InstallPrompt() {
         >
           <div className="flex items-center gap-3">
             <img
-              src={iconMeta.url}
+              src="/icon-192.png"
               alt="Flux"
               width={44}
               height={44}
