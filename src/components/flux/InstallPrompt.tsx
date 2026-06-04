@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Download, X } from "lucide-react";
-import iconMeta from "@/assets/flux-icon.json";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
