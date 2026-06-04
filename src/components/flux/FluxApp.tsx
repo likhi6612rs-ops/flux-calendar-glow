@@ -7,6 +7,7 @@ import { TaskList } from "./TaskList";
 import { TrendChart } from "./TrendChart";
 import { CelebrationEngine } from "./CelebrationEngine";
 import { InstallPrompt } from "./InstallPrompt";
+import { SettingsPanel } from "./SettingsPanel";
 import { cn } from "@/lib/utils";
 
 export function FluxApp() {
@@ -29,26 +30,29 @@ export function FluxApp() {
             {month.label}
           </h1>
         </div>
-        <div className="flex rounded-full border border-border bg-card/50 p-1">
-          {[
-            { i: 0, icon: LayoutGrid, label: "Dashboard" },
-            { i: 1, icon: LineChart, label: "Analytics" },
-          ].map(({ i, icon: Icon, label }) => (
-            <button
-              key={i}
-              onClick={() => setView(i)}
-              aria-label={label}
-              aria-pressed={view === i}
-              className={cn(
-                "flex h-9 w-9 items-center justify-center rounded-full transition-colors",
-                view === i
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <Icon className="h-4 w-4" />
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-full border border-border bg-card/50 p-1">
+            {[
+              { i: 0, icon: LayoutGrid, label: "Dashboard" },
+              { i: 1, icon: LineChart, label: "Analytics" },
+            ].map(({ i, icon: Icon, label }) => (
+              <button
+                key={i}
+                onClick={() => setView(i)}
+                aria-label={label}
+                aria-pressed={view === i}
+                className={cn(
+                  "flex h-9 w-9 items-center justify-center rounded-full transition-colors",
+                  view === i
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Icon className="h-4 w-4" />
+              </button>
+            ))}
+          </div>
+          <SettingsPanel />
         </div>
       </header>
 
@@ -75,7 +79,7 @@ export function FluxApp() {
                   Consistency Trend
                 </h2>
                 <p className="text-xs text-muted-foreground">
-                  Completion velocity · last 14 days
+                  Execution velocity by lifespan · last 14 days
                 </p>
               </div>
               <TrendChart />

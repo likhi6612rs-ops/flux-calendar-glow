@@ -4,11 +4,11 @@ import { motion } from "motion/react";
 import { TrendingUp, TrendingDown, Minus, RefreshCw, Lock } from "lucide-react";
 import {
   useFlux,
-  recentRatios,
+  buildSeries,
   classifyTrend,
   type Trend,
 } from "@/lib/flux-store";
-import { getMonthInfo } from "@/lib/flux-date";
+import { getMonthInfo, lastNDayKeys } from "@/lib/flux-date";
 import { cn } from "@/lib/utils";
 
 const BADGES = [
@@ -46,23 +46,23 @@ function fireConfetti() {
 }
 
 export function CelebrationEngine({ active }: { active: boolean }) {
-  const { days } = useFlux();
+  const { tasks, completions, isDayComplete } = useFlux();
   const firedRef = useRef(false);
 
-  const trend: Trend = useMemo(
-    () => classifyTrend(recentRatios(days, 7).map((d) => d.ratio)),
-    [days],
-  );
+  const trend: Trend = useMemo(() => {
+    const series = buildSeries(tasks, completions, lastNDayKeys(7));
+    return classifyTrend(
+      series
+        .map((s) => s.overall)
+        .filter((v): v is number => typeof v === "number"),
+    );
+  }, [tasks, completions]);
 
   const completedDays = useMemo(() => {
     const month = getMonthInfo();
-    return month.dayKeys.filter((key) => {
-      const list = days[key];
-      return list && list.length > 0 && list.every((t) => t.completed);
-    }).length;
-  }, [days]);
+    return month.dayKeys.filter((key) => isDayComplete(key)).length;
+  }, [isDayComplete]);
 
-  // Fire confetti once when an upward trend becomes visible.
   useEffect(() => {
     if (active && trend === "up" && !firedRef.current) {
       firedRef.current = true;

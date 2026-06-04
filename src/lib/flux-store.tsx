@@ -7,167 +7,232 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { dateKey, lastNDayKeys, todayKey } from "./flux-date";
+import { differenceInCalendarDays, parseISO } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "./auth";
+import { todayKey } from "./flux-date";
 
-export interface Task {
+export interface TaskSpan {
   id: string;
   text: string;
-  completed: boolean;
+  start_date: string; // yyyy-MM-dd
+  span_days: number;
 }
 
-/** Map of date key (yyyy-MM-dd) -> task list for that day */
-export type DayMap = Record<string, Task[]>;
+export type SpanCategory = "sprint" | "standard" | "longhaul";
 
-const STORAGE_KEY = "flux:days:v1";
+export const SPAN_OPTIONS: { label: string; days: number }[] = [
+  { label: "1 Day", days: 1 },
+  { label: "2 Days", days: 2 },
+  { label: "3 Days", days: 3 },
+  { label: "10 Days", days: 10 },
+  { label: "1 Week", days: 7 },
+  { label: "1 Month", days: 30 },
+  { label: "2 Months", days: 60 },
+  { label: "3 Months", days: 90 },
+];
+
+export function spanCategory(span: number): SpanCategory {
+  if (span <= 3) return "sprint";
+  if (span <= 31) return "standard";
+  return "longhaul";
+}
+
+export const CATEGORY_META: Record<
+  SpanCategory,
+  { label: string; color: string }
+> = {
+  sprint: { label: "Sprints", color: "var(--chart-2)" },
+  standard: { label: "Standard", color: "var(--chart-1)" },
+  longhaul: { label: "Long-haul", color: "var(--chart-3)" },
+};
+
+function covers(task: TaskSpan, key: string): boolean {
+  const diff = differenceInCalendarDays(parseISO(key), parseISO(task.start_date));
+  return diff >= 0 && diff < task.span_days;
+}
+
+const ckey = (taskId: string, date: string) => `${taskId}|${date}`;
 
 interface FluxContextValue {
-  days: DayMap;
+  tasks: TaskSpan[];
+  completions: Set<string>;
+  ready: boolean;
   selectedDate: string;
   setSelectedDate: (key: string) => void;
-  tasks: Task[]; // tasks for the selected day
-  addTask: (text: string) => void;
-  toggleTask: (id: string) => void;
-  deleteTask: (id: string) => void;
+  tasksForDate: (key: string) => TaskSpan[];
+  isCompleted: (taskId: string, key: string) => boolean;
   isDayComplete: (key: string) => boolean;
-  dayRatio: (key: string) => number; // 0..1, completed/total
+  dayRatio: (key: string) => number;
   hasTasks: (key: string) => boolean;
-  ready: boolean;
+  addTask: (text: string, spanDays: number) => Promise<void>;
+  toggleTask: (taskId: string, date: string) => Promise<void>;
+  editTask: (taskId: string, text: string) => Promise<void>;
+  deleteTask: (taskId: string) => Promise<void>;
 }
 
 const FluxContext = createContext<FluxContextValue | null>(null);
 
-function loadDays(): DayMap {
-  if (typeof window === "undefined") return {};
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as DayMap) : {};
-  } catch {
-    return {};
-  }
-}
-
-const newId = () =>
-  typeof crypto !== "undefined" && "randomUUID" in crypto
-    ? crypto.randomUUID()
-    : Math.random().toString(36).slice(2);
-
 export function FluxProvider({ children }: { children: ReactNode }) {
-  const [days, setDays] = useState<DayMap>({});
+  const { user } = useAuth();
+  const [tasks, setTasks] = useState<TaskSpan[]>([]);
+  const [completions, setCompletions] = useState<Set<string>>(new Set());
   const [selectedDate, setSelectedDate] = useState<string>(() => todayKey());
   const [ready, setReady] = useState(false);
 
-  // Hydrate from localStorage on the client only (avoids SSR mismatch).
-  useEffect(() => {
-    setDays(loadDays());
-    setSelectedDate(todayKey());
+  const reload = useCallback(async () => {
+    if (!user) return;
+    const [{ data: t }, { data: c }] = await Promise.all([
+      supabase
+        .from("tasks")
+        .select("id, text, start_date, span_days")
+        .eq("user_id", user.id),
+      supabase
+        .from("task_completions")
+        .select("task_id, date")
+        .eq("user_id", user.id),
+    ]);
+    setTasks((t ?? []) as TaskSpan[]);
+    setCompletions(new Set((c ?? []).map((r) => ckey(r.task_id, r.date))));
     setReady(true);
-  }, []);
+  }, [user]);
 
-  // Persist whenever data changes (after hydration).
   useEffect(() => {
-    if (!ready) return;
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(days));
-    } catch {
-      /* ignore quota / private mode errors */
-    }
-  }, [days, ready]);
+    reload();
+  }, [reload]);
 
-  const tasks = days[selectedDate] ?? [];
-
-  const addTask = useCallback(
-    (text: string) => {
-      const trimmed = text.trim();
-      if (!trimmed) return;
-      setDays((prev) => {
-        const list = prev[selectedDate] ?? [];
-        return {
-          ...prev,
-          [selectedDate]: [
-            ...list,
-            { id: newId(), text: trimmed, completed: false },
-          ],
-        };
-      });
-    },
-    [selectedDate],
+  const tasksForDate = useCallback(
+    (key: string) => tasks.filter((t) => covers(t, key)),
+    [tasks],
   );
 
-  const toggleTask = useCallback(
-    (id: string) => {
-      setDays((prev) => {
-        const list = prev[selectedDate] ?? [];
-        return {
-          ...prev,
-          [selectedDate]: list.map((t) =>
-            t.id === id ? { ...t, completed: !t.completed } : t,
-          ),
-        };
-      });
-    },
-    [selectedDate],
-  );
-
-  const deleteTask = useCallback(
-    (id: string) => {
-      setDays((prev) => {
-        const list = (prev[selectedDate] ?? []).filter((t) => t.id !== id);
-        const next = { ...prev };
-        if (list.length) next[selectedDate] = list;
-        else delete next[selectedDate];
-        return next;
-      });
-    },
-    [selectedDate],
-  );
-
-  const isDayComplete = useCallback(
-    (key: string) => {
-      const list = days[key];
-      return !!list && list.length > 0 && list.every((t) => t.completed);
-    },
-    [days],
+  const isCompleted = useCallback(
+    (taskId: string, key: string) => completions.has(ckey(taskId, key)),
+    [completions],
   );
 
   const dayRatio = useCallback(
     (key: string) => {
-      const list = days[key];
-      if (!list || list.length === 0) return 0;
-      return list.filter((t) => t.completed).length / list.length;
+      const list = tasksForDate(key);
+      if (list.length === 0) return 0;
+      const done = list.filter((t) => completions.has(ckey(t.id, key))).length;
+      return done / list.length;
     },
-    [days],
+    [tasksForDate, completions],
+  );
+
+  const isDayComplete = useCallback(
+    (key: string) => {
+      const list = tasksForDate(key);
+      return (
+        list.length > 0 && list.every((t) => completions.has(ckey(t.id, key)))
+      );
+    },
+    [tasksForDate, completions],
   );
 
   const hasTasks = useCallback(
-    (key: string) => !!days[key] && days[key].length > 0,
-    [days],
+    (key: string) => tasksForDate(key).length > 0,
+    [tasksForDate],
   );
+
+  const addTask = useCallback(
+    async (text: string, spanDays: number) => {
+      if (!user) return;
+      const trimmed = text.trim();
+      if (!trimmed) return;
+      const { data } = await supabase
+        .from("tasks")
+        .insert({
+          user_id: user.id,
+          text: trimmed,
+          start_date: selectedDate,
+          span_days: spanDays,
+        })
+        .select("id, text, start_date, span_days")
+        .single();
+      if (data) setTasks((prev) => [...prev, data as TaskSpan]);
+    },
+    [user, selectedDate],
+  );
+
+  const toggleTask = useCallback(
+    async (taskId: string, date: string) => {
+      if (!user) return;
+      const key = ckey(taskId, date);
+      if (completions.has(key)) {
+        setCompletions((prev) => {
+          const next = new Set(prev);
+          next.delete(key);
+          return next;
+        });
+        await supabase
+          .from("task_completions")
+          .delete()
+          .eq("task_id", taskId)
+          .eq("date", date);
+      } else {
+        setCompletions((prev) => new Set(prev).add(key));
+        await supabase
+          .from("task_completions")
+          .insert({ task_id: taskId, user_id: user.id, date });
+      }
+    },
+    [user, completions],
+  );
+
+  const editTask = useCallback(async (taskId: string, text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    setTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, text: trimmed } : t)),
+    );
+    await supabase.from("tasks").update({ text: trimmed }).eq("id", taskId);
+  }, []);
+
+  const deleteTask = useCallback(async (taskId: string) => {
+    setTasks((prev) => prev.filter((t) => t.id !== taskId));
+    setCompletions((prev) => {
+      const next = new Set<string>();
+      prev.forEach((k) => {
+        if (!k.startsWith(`${taskId}|`)) next.add(k);
+      });
+      return next;
+    });
+    await supabase.from("tasks").delete().eq("id", taskId);
+  }, []);
 
   const value = useMemo<FluxContextValue>(
     () => ({
-      days,
+      tasks,
+      completions,
+      ready,
       selectedDate,
       setSelectedDate,
-      tasks,
-      addTask,
-      toggleTask,
-      deleteTask,
+      tasksForDate,
+      isCompleted,
       isDayComplete,
       dayRatio,
       hasTasks,
-      ready,
+      addTask,
+      toggleTask,
+      editTask,
+      deleteTask,
     }),
     [
-      days,
-      selectedDate,
       tasks,
-      addTask,
-      toggleTask,
-      deleteTask,
+      completions,
+      ready,
+      selectedDate,
+      tasksForDate,
+      isCompleted,
       isDayComplete,
       dayRatio,
       hasTasks,
-      ready,
+      addTask,
+      toggleTask,
+      editTask,
+      deleteTask,
     ],
   );
 
@@ -201,19 +266,46 @@ export function classifyTrend(points: number[]): Trend {
   return "flat";
 }
 
-/** Helper to read the recent ratio series straight from the store. */
-export function recentRatios(
-  days: DayMap,
-  n: number,
-): { key: string; ratio: number; hasData: boolean }[] {
-  return lastNDayKeys(n).map((key) => {
-    const list = days[key];
-    const hasData = !!list && list.length > 0;
-    const ratio = hasData
-      ? list.filter((t) => t.completed).length / list.length
-      : 0;
-    return { key, ratio, hasData };
+export interface SeriesPoint {
+  key: string;
+  overall: number | null;
+  sprint: number | null;
+  standard: number | null;
+  longhaul: number | null;
+}
+
+/** Builds per-day completion ratios broken down by task lifespan category. */
+export function buildSeries(
+  tasks: TaskSpan[],
+  completions: Set<string>,
+  keys: string[],
+): SeriesPoint[] {
+  return keys.map((key) => {
+    const covering = tasks.filter((t) => covers(t, key));
+    const ratioFor = (cat: SpanCategory | "all"): number | null => {
+      const list =
+        cat === "all"
+          ? covering
+          : covering.filter((t) => spanCategory(t.span_days) === cat);
+      if (list.length === 0) return null;
+      const done = list.filter((t) => completions.has(ckey(t.id, key))).length;
+      return done / list.length;
+    };
+    return {
+      key,
+      overall: ratioFor("all"),
+      sprint: ratioFor("sprint"),
+      standard: ratioFor("standard"),
+      longhaul: ratioFor("longhaul"),
+    };
   });
 }
 
-export { dateKey };
+/** Average efficiency (0..1) across a window for one category, ignoring empty days. */
+export function categoryEfficiency(series: SeriesPoint[], cat: keyof SeriesPoint) {
+  const vals = series
+    .map((p) => p[cat])
+    .filter((v): v is number => typeof v === "number");
+  if (vals.length === 0) return null;
+  return vals.reduce((a, b) => a + b, 0) / vals.length;
+}
