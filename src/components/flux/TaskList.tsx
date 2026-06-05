@@ -85,6 +85,7 @@ export function TaskList() {
             value={value}
             onChange={(e) => setValue(e.target.value)}
             placeholder="Type an objective…"
+            aria-label="New objective"
             className="w-full rounded-xl border border-input bg-card/60 py-3 pl-4 pr-12 text-sm outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary"
           />
           <button
