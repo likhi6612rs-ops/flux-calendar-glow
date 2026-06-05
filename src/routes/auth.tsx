@@ -15,6 +15,15 @@ export const Route = createFileRoute("/auth")({
         name: "description",
         content: "Sign in to Flux — your personal nervous system for execution consistency.",
       },
+      { property: "og:title", content: "Sign in · Flux" },
+      {
+        property: "og:description",
+        content: "Sign in to Flux — your personal nervous system for execution consistency.",
+      },
+      { property: "og:url", content: "https://flux-calendar-glow.lovable.app/auth" },
+    ],
+    links: [
+      { rel: "canonical", href: "https://flux-calendar-glow.lovable.app/auth" },
     ],
   }),
   component: AuthPage,
