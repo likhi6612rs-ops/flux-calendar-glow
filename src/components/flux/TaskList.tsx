@@ -112,6 +112,10 @@ export function TaskList() {
         </div>
       </form>
 
+      <FocusTimer />
+
+
+
       <ul className="flex flex-col gap-2">
         <AnimatePresence initial={false}>
           {tasks.map((task) => {
