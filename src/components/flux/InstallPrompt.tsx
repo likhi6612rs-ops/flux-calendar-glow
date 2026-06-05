@@ -59,7 +59,7 @@ export function InstallPrompt() {
           <div className="flex items-center gap-3">
             <img
               src="/icon-192.png"
-              alt="Flux"
+              alt="Flux app icon"
               width={44}
               height={44}
               className="h-11 w-11 rounded-xl"

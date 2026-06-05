@@ -98,9 +98,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:title", content: "Flux — Dynamic Personal Nervous System" },
       { property: "og:description", content: "Flux is a dynamic PWA productivity dashboard that visualizes time consistency and gamifies discipline." },
       { property: "og:type", content: "website" },
+      { property: "og:site_name", content: "Flux" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:title", content: "Flux — Dynamic Personal Nervous System" },
-      { name: "description", content: "Flux is a dynamic PWA productivity dashboard that visualizes time consistency and gamifies discipline." },
       { name: "twitter:description", content: "Flux is a dynamic PWA productivity dashboard that visualizes time consistency and gamifies discipline." },
       { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/f8o7rLdvk2cTJ48XR1EEOlJBErS2/social-images/social-1780587543373-Gemini_Generated_Image_3blzxx3blzxx3blz.webp" },
       { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/f8o7rLdvk2cTJ48XR1EEOlJBErS2/social-images/social-1780587543373-Gemini_Generated_Image_3blzxx3blzxx3blz.webp" },
@@ -152,7 +152,9 @@ function RootComponent() {
       <AuthProvider>
         <ThemeProvider>
           {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-          <Outlet />
+          <main>
+            <Outlet />
+          </main>
           <Toaster />
         </ThemeProvider>
       </AuthProvider>

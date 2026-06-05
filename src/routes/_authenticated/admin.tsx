@@ -14,6 +14,25 @@ import { useAuth } from "@/lib/auth";
 import { format } from "date-fns";
 
 export const Route = createFileRoute("/_authenticated/admin")({
+  head: () => ({
+    meta: [
+      { title: "Admin Portal · Flux" },
+      {
+        name: "description",
+        content: "Flux executive admin panel for reviewing users and feedback.",
+      },
+      { name: "robots", content: "noindex, nofollow" },
+      { property: "og:title", content: "Admin Portal · Flux" },
+      {
+        property: "og:description",
+        content: "Flux executive admin panel for reviewing users and feedback.",
+      },
+      { property: "og:url", content: "https://flux-calendar-glow.lovable.app/admin" },
+    ],
+    links: [
+      { rel: "canonical", href: "https://flux-calendar-glow.lovable.app/admin" },
+    ],
+  }),
   component: AdminPage,
 });
 
@@ -145,6 +164,7 @@ function AdminPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by email…"
+            aria-label="Search users by email"
             className="w-full rounded-xl border border-input bg-card/60 py-2.5 pl-9 pr-4 text-sm outline-none focus:border-primary"
           />
         </div>

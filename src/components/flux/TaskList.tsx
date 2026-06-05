@@ -85,6 +85,7 @@ export function TaskList() {
             value={value}
             onChange={(e) => setValue(e.target.value)}
             placeholder="Type an objective…"
+            aria-label="New objective"
             className="w-full rounded-xl border border-input bg-card/60 py-3 pl-4 pr-12 text-sm outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary"
           />
           <button
@@ -98,7 +99,10 @@ export function TaskList() {
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">Repeats for</span>
           <Select value={span} onValueChange={setSpan}>
-            <SelectTrigger className="h-9 flex-1 rounded-xl border-input bg-card/60 text-sm">
+            <SelectTrigger
+              aria-label="Repeat frequency"
+              className="h-9 flex-1 rounded-xl border-input bg-card/60 text-sm"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
