@@ -145,6 +145,7 @@ function AdminPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by email…"
+            aria-label="Search users by email"
             className="w-full rounded-xl border border-input bg-card/60 py-2.5 pl-9 pr-4 text-sm outline-none focus:border-primary"
           />
         </div>
