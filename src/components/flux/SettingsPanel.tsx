@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Settings, Send, LogOut, ShieldCheck, Check } from "lucide-react";
+import { Settings, Send, LogOut, ShieldCheck, Check, Timer } from "lucide-react";
 import { toast } from "sonner";
 import {
   Sheet,
@@ -20,6 +20,17 @@ export function SettingsPanel() {
   const [feedback, setFeedback] = useState("");
   const [sending, setSending] = useState(false);
   const [open, setOpen] = useState(false);
+  const [timerCount, setTimerCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!open || !user) return;
+    supabase
+      .from("profiles")
+      .select("timer_completion_count")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => setTimerCount(data?.timer_completion_count ?? 0));
+  }, [open, user]);
 
   const submitFeedback = async () => {
     const msg = feedback.trim();
@@ -62,6 +73,13 @@ export function SettingsPanel() {
           <div className="rounded-xl border border-border bg-card/40 p-3">
             <p className="text-xs text-muted-foreground">Signed in as</p>
             <p className="truncate text-sm font-semibold">{user?.email}</p>
+            <div className="mt-3 flex items-center gap-2 rounded-lg border border-border bg-background/40 px-3 py-2">
+              <Timer className="h-4 w-4 text-primary" />
+              <span className="text-sm">
+                <span className="font-bold">{timerCount ?? "—"}</span>{" "}
+                <span className="text-muted-foreground">focus sessions completed</span>
+              </span>
+            </div>
             {isAdmin && (
               <Link
                 to="/admin"

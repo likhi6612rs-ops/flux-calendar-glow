@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { FocusTimer } from "./FocusTimer";
 
 export function TaskList() {
   const {
@@ -110,6 +111,10 @@ export function TaskList() {
           </Select>
         </div>
       </form>
+
+      <FocusTimer />
+
+
 
       <ul className="flex flex-col gap-2">
         <AnimatePresence initial={false}>
