@@ -121,6 +121,7 @@ function AuthPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@email.com"
+            aria-label="Email address"
             autoComplete="email"
             className="w-full rounded-xl border border-input bg-card/60 px-4 py-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary"
           />
@@ -129,6 +130,7 @@ function AuthPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Password"
+            aria-label="Password"
             autoComplete={mode === "signin" ? "current-password" : "new-password"}
             className="w-full rounded-xl border border-input bg-card/60 px-4 py-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary"
           />
