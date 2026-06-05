@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { FocusTimer } from "./FocusTimer";
 
 export function TaskList() {
   const {
