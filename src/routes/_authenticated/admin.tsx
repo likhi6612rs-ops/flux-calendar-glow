@@ -14,6 +14,25 @@ import { useAuth } from "@/lib/auth";
 import { format } from "date-fns";
 
 export const Route = createFileRoute("/_authenticated/admin")({
+  head: () => ({
+    meta: [
+      { title: "Admin Portal · Flux" },
+      {
+        name: "description",
+        content: "Flux executive admin panel for reviewing users and feedback.",
+      },
+      { name: "robots", content: "noindex, nofollow" },
+      { property: "og:title", content: "Admin Portal · Flux" },
+      {
+        property: "og:description",
+        content: "Flux executive admin panel for reviewing users and feedback.",
+      },
+      { property: "og:url", content: "https://flux-calendar-glow.lovable.app/admin" },
+    ],
+    links: [
+      { rel: "canonical", href: "https://flux-calendar-glow.lovable.app/admin" },
+    ],
+  }),
   component: AdminPage,
 });
 
