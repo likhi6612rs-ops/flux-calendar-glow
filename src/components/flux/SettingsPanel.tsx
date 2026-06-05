@@ -134,6 +134,7 @@ export function SettingsPanel() {
               maxLength={2000}
               rows={4}
               placeholder="Share your thoughts…"
+              aria-label="Feedback message"
               className="w-full resize-none rounded-xl border border-input bg-card/60 p-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary"
             />
             <button
