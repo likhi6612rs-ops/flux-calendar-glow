@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Settings, Send, LogOut, ShieldCheck, Check } from "lucide-react";
+import { Settings, Send, LogOut, ShieldCheck, Check, Timer } from "lucide-react";
 import { toast } from "sonner";
 import {
   Sheet,
