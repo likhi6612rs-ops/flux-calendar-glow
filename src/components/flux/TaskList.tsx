@@ -99,7 +99,10 @@ export function TaskList() {
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">Repeats for</span>
           <Select value={span} onValueChange={setSpan}>
-            <SelectTrigger className="h-9 flex-1 rounded-xl border-input bg-card/60 text-sm">
+            <SelectTrigger
+              aria-label="Repeat frequency"
+              className="h-9 flex-1 rounded-xl border-input bg-card/60 text-sm"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
