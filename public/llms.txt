@@ -1,0 +1,13 @@
+# Flux
+
+> Flux is a minimalist, gamified PWA productivity dashboard — a "digital nervous system" that visualizes daily execution consistency, adapts to the calendar month, and rewards discipline.
+
+Flux helps you track daily objectives, build streaks, run focus timers, and watch your consistency light up across a dynamic monthly calendar. It is offline-first, installable to your home screen, and built around a calm lavender aesthetic.
+
+## Pages
+
+- [Sign in](/auth): Create an account or sign in to access your personal Flux dashboard.
+
+## Optional
+
+- [Home](/): The personal dashboard with the monthly calendar, daily tasks, focus timer, and analytics (requires sign-in).
