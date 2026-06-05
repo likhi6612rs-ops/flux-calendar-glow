@@ -20,6 +20,17 @@ export function SettingsPanel() {
   const [feedback, setFeedback] = useState("");
   const [sending, setSending] = useState(false);
   const [open, setOpen] = useState(false);
+  const [timerCount, setTimerCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!open || !user) return;
+    supabase
+      .from("profiles")
+      .select("timer_completion_count")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => setTimerCount(data?.timer_completion_count ?? 0));
+  }, [open, user]);
 
   const submitFeedback = async () => {
     const msg = feedback.trim();
