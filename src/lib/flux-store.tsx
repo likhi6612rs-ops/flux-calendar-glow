@@ -10,7 +10,21 @@ import {
 import { differenceInCalendarDays, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./auth";
-import { todayKey } from "./flux-date";
+import { todayKey, lastNDayKeys, isToday } from "./flux-date";
+
+export interface ProcrastinationSummary {
+  /** incomplete task-instances across the window (past days only) */
+  pending: number;
+  /** number of past days that still carry unfinished tasks */
+  daysWithDebt: number;
+  /** total task-instances scheduled in the window */
+  total: number;
+  /** completed task-instances in the window */
+  completed: number;
+  /** 0..1 completion ratio across the window */
+  ratio: number;
+  windowDays: number;
+}
 
 export interface TaskSpan {
   id: string;
@@ -65,6 +79,7 @@ interface FluxContextValue {
   isDayComplete: (key: string) => boolean;
   dayRatio: (key: string) => number;
   hasTasks: (key: string) => boolean;
+  procrastination: (windowDays: number) => ProcrastinationSummary;
   addTask: (text: string, spanDays: number) => Promise<void>;
   toggleTask: (taskId: string, date: string) => Promise<void>;
   editTask: (taskId: string, text: string) => Promise<void>;
@@ -135,6 +150,39 @@ export function FluxProvider({ children }: { children: ReactNode }) {
     (key: string) => tasksForDate(key).length > 0,
     [tasksForDate],
   );
+
+  const procrastination = useCallback(
+    (windowDays: number): ProcrastinationSummary => {
+      const keys = lastNDayKeys(windowDays).filter((k) => !isToday(k));
+      let pending = 0;
+      let total = 0;
+      let completed = 0;
+      let daysWithDebt = 0;
+      keys.forEach((key) => {
+        const list = tasksForDate(key);
+        let dayPending = 0;
+        list.forEach((t) => {
+          total += 1;
+          if (completions.has(ckey(t.id, key))) completed += 1;
+          else {
+            pending += 1;
+            dayPending += 1;
+          }
+        });
+        if (dayPending > 0) daysWithDebt += 1;
+      });
+      return {
+        pending,
+        daysWithDebt,
+        total,
+        completed,
+        ratio: total === 0 ? 1 : completed / total,
+        windowDays,
+      };
+    },
+    [tasksForDate, completions],
+  );
+
 
   const addTask = useCallback(
     async (text: string, spanDays: number) => {
@@ -214,6 +262,7 @@ export function FluxProvider({ children }: { children: ReactNode }) {
       isDayComplete,
       dayRatio,
       hasTasks,
+      procrastination,
       addTask,
       toggleTask,
       editTask,
@@ -229,6 +278,7 @@ export function FluxProvider({ children }: { children: ReactNode }) {
       isDayComplete,
       dayRatio,
       hasTasks,
+      procrastination,
       addTask,
       toggleTask,
       editTask,

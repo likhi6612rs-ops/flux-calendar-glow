@@ -1,107 +1,277 @@
-import { useState } from "react";
-import { motion, type PanInfo } from "motion/react";
-import { LayoutGrid, LineChart } from "lucide-react";
-import { getMonthInfo } from "@/lib/flux-date";
-import { CalendarGrid } from "./CalendarGrid";
+import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import {
+  CalendarDays,
+  ListChecks,
+  Timer,
+  LineChart,
+  Crown,
+  Sparkles,
+  PanelRightClose,
+  PanelRightOpen,
+} from "lucide-react";
+import { useFlux } from "@/lib/flux-store";
+import { usePremium } from "@/lib/premium";
+import { useAuth } from "@/lib/auth";
+import { MultiMonthCalendar } from "./MultiMonthCalendar";
+import { ProcrastinationTracker } from "./ProcrastinationTracker";
 import { TaskList } from "./TaskList";
-import { TrendChart } from "./TrendChart";
-import { CelebrationEngine } from "./CelebrationEngine";
-import { InstallPrompt } from "./InstallPrompt";
+import { FocusPane } from "./FocusPane";
+import { InsightsView } from "./InsightsView";
 import { SettingsPanel } from "./SettingsPanel";
+import { InstallPrompt } from "./InstallPrompt";
+import { UpdateBanner } from "./UpdateBanner";
+import { PaywallModal } from "./PaywallModal";
 import { cn } from "@/lib/utils";
 
-export function FluxApp() {
-  const [view, setView] = useState(0); // 0 = dashboard, 1 = analytics
-  const month = getMonthInfo();
+type ModuleId = "calendar" | "tasks" | "focus" | "insights";
 
-  const onDragEnd = (_: unknown, info: PanInfo) => {
-    if (info.offset.x < -60 && info.velocity.x < 0) setView(1);
-    else if (info.offset.x > 60 && info.velocity.x > 0) setView(0);
+const NAV: { id: ModuleId; label: string; icon: typeof CalendarDays }[] = [
+  { id: "calendar", label: "Calendar", icon: CalendarDays },
+  { id: "tasks", label: "Tasks", icon: ListChecks },
+  { id: "focus", label: "Focus", icon: Timer },
+  { id: "insights", label: "Insights", icon: LineChart },
+];
+
+function useIsDesktop() {
+  const [desktop, setDesktop] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const update = () => setDesktop(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+  return desktop;
+}
+
+function CenterModule({ id }: { id: ModuleId }) {
+  if (id === "calendar")
+    return (
+      <div className="space-y-6">
+        <ProcrastinationTracker />
+        <MultiMonthCalendar />
+      </div>
+    );
+  if (id === "tasks") return <TaskList />;
+  if (id === "focus") return <FocusPane />;
+  return <InsightsView />;
+}
+
+export function FluxApp() {
+  const desktop = useIsDesktop();
+  const { user } = useAuth();
+  const { isPremium, openPaywall } = usePremium();
+  const { procrastination } = useFlux();
+
+  const [active, setActive] = useState<ModuleId>("calendar");
+  const [rightOpen, setRightOpen] = useState(true);
+
+  const hasDebt = procrastination(3).pending > 0;
+  // On desktop the focus pane lives on the right, so the center never shows it.
+  const centerModule: ModuleId =
+    desktop && active === "focus" ? "calendar" : active;
+
+  const onNav = (id: ModuleId) => {
+    if (desktop && id === "focus") {
+      setRightOpen((o) => !o);
+      return;
+    }
+    setActive(id);
   };
 
-  return (
-    <div className="mx-auto flex min-h-screen max-w-md flex-col px-5 pb-28 pt-8">
-      <header className="mb-6 flex items-center justify-between">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-[0.2em] text-primary-glow">
-            Flux
-          </p>
-          <h1 className="text-2xl font-extrabold tracking-tight">
-            {month.label}
-          </h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex rounded-full border border-border bg-card/50 p-1">
-            {[
-              { i: 0, icon: LayoutGrid, label: "Dashboard" },
-              { i: 1, icon: LineChart, label: "Analytics" },
-            ].map(({ i, icon: Icon, label }) => (
-              <button
-                key={i}
-                onClick={() => setView(i)}
-                aria-label={label}
-                aria-pressed={view === i}
-                className={cn(
-                  "flex h-9 w-9 items-center justify-center rounded-full transition-colors",
-                  view === i
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <Icon className="h-4 w-4" />
-              </button>
-            ))}
-          </div>
-          <SettingsPanel />
-        </div>
-      </header>
+  const navActive = (id: ModuleId) =>
+    id === "focus"
+      ? desktop
+        ? rightOpen
+        : active === "focus"
+      : active === id;
 
-      <div className="relative flex-1 overflow-hidden">
-        <motion.div
-          className="flex w-[200%]"
-          drag="x"
-          dragConstraints={{ left: 0, right: 0 }}
-          dragElastic={0.12}
-          onDragEnd={onDragEnd}
-          animate={{ x: view === 0 ? "0%" : "-50%" }}
-          transition={{ type: "spring", stiffness: 280, damping: 32 }}
-        >
-          <div className="w-1/2 shrink-0 pr-2">
-            <div className="space-y-8">
-              <CalendarGrid />
-              <TaskList />
-            </div>
-          </div>
-          <div className="w-1/2 shrink-0 pl-2">
-            <div className="space-y-6">
+  const initials = (user?.email ?? "F").slice(0, 1).toUpperCase();
+
+  return (
+    <div className="min-h-screen overflow-x-hidden">
+      <div className="mx-auto flex min-h-screen w-full max-w-6xl">
+        {/* ---------- Desktop left sidebar ---------- */}
+        {desktop && (
+          <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col border-r border-white/5 bg-card/30 px-3 py-5 backdrop-blur-sm">
+            <div className="mb-6 flex items-center gap-2 px-2">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-glow text-sm font-black text-primary-foreground">
+                F
+              </div>
               <div>
-                <h2 className="text-lg font-bold tracking-tight">
-                  Consistency Trend
-                </h2>
-                <p className="text-xs text-muted-foreground">
-                  Execution velocity by lifespan · last 14 days
+                <p className="text-sm font-extrabold leading-none tracking-tight">
+                  Flux
+                </p>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                  Nervous System
                 </p>
               </div>
-              <TrendChart />
-              <CelebrationEngine active={view === 1} />
             </div>
-          </div>
-        </motion.div>
-      </div>
 
-      <div className="pointer-events-none fixed inset-x-0 bottom-6 flex justify-center gap-2">
-        {[0, 1].map((i) => (
-          <span
-            key={i}
-            className={cn(
-              "h-1.5 rounded-full transition-all duration-300",
-              view === i ? "w-6 bg-primary" : "w-1.5 bg-muted-foreground/40",
+            <nav className="flex flex-1 flex-col gap-1">
+              {NAV.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => onNav(item.id)}
+                  className={cn(
+                    "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all duration-300",
+                    navActive(item.id)
+                      ? "bg-primary/15 text-primary-glow"
+                      : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground",
+                  )}
+                >
+                  <item.icon className="h-4 w-4" />
+                  {item.label}
+                  {item.id === "calendar" && hasDebt && (
+                    <span className="ml-auto flex h-2 w-2">
+                      <span className="absolute inline-flex h-2 w-2 animate-ping rounded-full bg-destructive opacity-75" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-destructive" />
+                    </span>
+                  )}
+                  {item.id === "insights" && !isPremium && (
+                    <Crown className="ml-auto h-3.5 w-3.5 text-amber-300/80" />
+                  )}
+                  {item.id === "focus" && (
+                    <span className="ml-auto text-muted-foreground/60">
+                      {desktop && rightOpen ? (
+                        <PanelRightClose className="h-3.5 w-3.5" />
+                      ) : (
+                        <PanelRightOpen className="h-3.5 w-3.5" />
+                      )}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </nav>
+
+            {!isPremium ? (
+              <button
+                onClick={() => openPaywall("Flux Premium")}
+                className="mb-3 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-primary/20 to-primary-glow/10 p-3 text-left transition-transform active:scale-[0.98]"
+              >
+                <p className="flex items-center gap-1.5 text-xs font-bold text-primary-glow">
+                  <Sparkles className="h-3.5 w-3.5" /> Go Premium
+                </p>
+                <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
+                  Unlock AI breakdowns, analytics & soundscapes.
+                </p>
+              </button>
+            ) : (
+              <div className="mb-3 flex items-center gap-2 rounded-2xl border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-xs font-bold text-amber-300">
+                <Crown className="h-3.5 w-3.5" /> Premium active
+              </div>
             )}
-          />
-        ))}
+
+            <div className="flex items-center gap-2 rounded-2xl border border-white/5 bg-background/40 px-3 py-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20 text-sm font-bold text-primary-glow">
+                {initials}
+              </div>
+              <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+                {user?.email}
+              </p>
+              <SettingsPanel />
+            </div>
+          </aside>
+        )}
+
+        {/* ---------- Center canvas ---------- */}
+        <main className="min-w-0 flex-1 px-4 pb-28 pt-6 sm:px-6 lg:pb-10 lg:pt-8">
+          {!desktop && (
+            <header className="mb-6 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-glow text-sm font-black text-primary-foreground">
+                  F
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-[0.2em] text-primary-glow">
+                    Flux
+                  </p>
+                  <h1 className="text-lg font-extrabold leading-none tracking-tight">
+                    {NAV.find((n) => n.id === active)?.label}
+                  </h1>
+                </div>
+              </div>
+              <SettingsPanel />
+            </header>
+          )}
+
+          <div className="mx-auto max-w-2xl">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={centerModule}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2 }}
+              >
+                <CenterModule id={centerModule} />
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </main>
+
+        {/* ---------- Desktop right focus pane ---------- */}
+        {desktop && (
+          <AnimatePresence>
+            {rightOpen && (
+              <motion.aside
+                initial={{ width: 0, opacity: 0 }}
+                animate={{ width: 320, opacity: 1 }}
+                exit={{ width: 0, opacity: 0 }}
+                transition={{ type: "spring", stiffness: 260, damping: 30 }}
+                className="sticky top-0 h-screen shrink-0 overflow-y-auto border-l border-white/5 bg-card/20 backdrop-blur-sm"
+              >
+                <div className="w-80 p-5">
+                  <FocusPane />
+                </div>
+              </motion.aside>
+            )}
+          </AnimatePresence>
+        )}
       </div>
 
+      {/* ---------- Mobile bottom nav ---------- */}
+      {!desktop && (
+        <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-popover/90 px-2 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl">
+          <div className="mx-auto flex max-w-md items-stretch justify-around">
+            {NAV.map((item) => {
+              const on = navActive(item.id);
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => onNav(item.id)}
+                  className={cn(
+                    "relative flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-semibold transition-colors",
+                    on ? "text-primary-glow" : "text-muted-foreground",
+                  )}
+                >
+                  <span className="relative">
+                    <item.icon className="h-5 w-5" />
+                    {item.id === "calendar" && hasDebt && (
+                      <span className="absolute -right-1.5 -top-1 h-2 w-2 rounded-full bg-destructive ring-2 ring-popover" />
+                    )}
+                    {item.id === "insights" && !isPremium && (
+                      <Crown className="absolute -right-2 -top-1 h-2.5 w-2.5 text-amber-300" />
+                    )}
+                  </span>
+                  {item.label}
+                  {on && (
+                    <motion.span
+                      layoutId="navdot"
+                      className="absolute top-0 h-0.5 w-8 rounded-full bg-primary"
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+      )}
+
+      <PaywallModal />
       <InstallPrompt />
+      <UpdateBanner />
     </div>
   );
 }

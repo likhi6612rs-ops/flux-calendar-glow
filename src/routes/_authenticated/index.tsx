@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { FluxProvider } from "@/lib/flux-store";
+import { PremiumProvider } from "@/lib/premium";
 import { FluxApp } from "@/components/flux/FluxApp";
 
 export const Route = createFileRoute("/_authenticated/")({
@@ -41,7 +42,9 @@ export const Route = createFileRoute("/_authenticated/")({
 function Index() {
   return (
     <FluxProvider>
-      <FluxApp />
+      <PremiumProvider>
+        <FluxApp />
+      </PremiumProvider>
     </FluxProvider>
   );
 }

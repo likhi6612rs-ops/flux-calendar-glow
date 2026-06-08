@@ -1,6 +1,15 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Settings, Send, LogOut, ShieldCheck, Check, Timer } from "lucide-react";
+import {
+  Settings,
+  Send,
+  LogOut,
+  ShieldCheck,
+  Check,
+  Timer,
+  Crown,
+  Sparkles,
+} from "lucide-react";
 import { toast } from "sonner";
 import {
   Sheet,
@@ -11,12 +20,14 @@ import {
 } from "@/components/ui/sheet";
 import { useTheme, THEMES } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
+import { usePremium } from "@/lib/premium";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
 export function SettingsPanel() {
   const { theme, setTheme } = useTheme();
   const { user, isAdmin, signOut } = useAuth();
+  const { isPremium, openPaywall, cancel } = usePremium();
   const [feedback, setFeedback] = useState("");
   const [sending, setSending] = useState(false);
   const [open, setOpen] = useState(false);
@@ -90,6 +101,38 @@ export function SettingsPanel() {
               </Link>
             )}
           </div>
+
+          {/* Premium */}
+          <div className="rounded-xl border border-amber-300/20 bg-amber-300/[0.06] p-3">
+            <p className="flex items-center gap-1.5 text-sm font-bold text-amber-300">
+              <Crown className="h-4 w-4" /> Flux Premium
+            </p>
+            <p className="mb-3 mt-1 text-xs text-muted-foreground">
+              {isPremium
+                ? "Active — all advanced features unlocked."
+                : "Unlock AI breakdowns, 30-day analytics & soundscapes."}
+            </p>
+            {isPremium ? (
+              <button
+                onClick={cancel}
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-border py-2 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Deactivate (demo)
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  openPaywall("Flux Premium");
+                }}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-primary to-primary-glow py-2 text-sm font-bold text-primary-foreground transition-transform active:scale-[0.98]"
+              >
+                <Sparkles className="h-4 w-4" /> Go Premium
+              </button>
+            )}
+          </div>
+
+
 
           {/* Theme */}
           <div>
