@@ -94,8 +94,8 @@ export function AmbientSounds() {
   useEffect(() => () => stop(), []);
 
   const toggle = (id: SoundId) => {
-    if (!isPremium) {
-      openPaywall("Ambient Soundscapes");
+    if (!isUnlocked) {
+      openPaywall("Ambient Soundscapes", "ultra");
       return;
     }
     if (active === id) stop();
