@@ -44,7 +44,9 @@ function Index() {
   return (
     <FluxProvider>
       <PremiumProvider>
-        <FluxApp />
+        <VerificationGate>
+          <FluxApp />
+        </VerificationGate>
       </PremiumProvider>
     </FluxProvider>
   );
