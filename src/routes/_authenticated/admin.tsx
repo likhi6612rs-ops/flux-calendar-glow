@@ -223,9 +223,93 @@ function AdminPage() {
       {/* Metrics */}
       <div className="mb-7 grid grid-cols-3 gap-3">
         <Metric icon={Users} label="Registered" value={profiles.length} />
-        <Metric icon={ShieldCheck} label="Admins" value={adminCount} />
+        <Metric icon={CreditCard} label="Pending" value={requests.length} />
         <Metric icon={MessageSquare} label="Feedback" value={feedback.length} />
       </div>
+
+      {/* Pending payment approvals */}
+      <section className="mb-8">
+        <h2 className="mb-3 flex items-center gap-2 text-lg font-bold tracking-tight">
+          <CreditCard className="h-4 w-4 text-primary" /> Pending Approvals
+          {requests.length > 0 && (
+            <span className="rounded-full bg-destructive/20 px-2 py-0.5 text-xs font-bold text-destructive">
+              {requests.length}
+            </span>
+          )}
+        </h2>
+        <div className="space-y-2.5">
+          {requests.map((req) => {
+            const p = profileById.get(req.user_id);
+            const busy =
+              review.isPending && review.variables?.req.id === req.id;
+            return (
+              <div
+                key={req.id}
+                className="rounded-2xl border border-border bg-card/40 p-4"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-bold">
+                      {p?.full_name || "Unnamed user"}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {p?.email ?? "—"}
+                    </p>
+                    {p?.mobile && (
+                      <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                        <Phone className="h-3 w-3" /> {p.mobile}
+                      </p>
+                    )}
+                  </div>
+                  <span className="rounded-full bg-primary/15 px-2.5 py-1 text-xs font-bold text-primary-glow">
+                    {tierLabel(req.tier)} · ₹{req.amount}
+                  </span>
+                </div>
+
+                <div className="mt-3 flex items-center gap-2 rounded-lg border border-border bg-background/40 px-3 py-2">
+                  <span className="text-xs text-muted-foreground">UTR</span>
+                  <span className="font-mono text-sm font-bold tracking-wider">
+                    {req.utr}
+                  </span>
+                  <span className="ml-auto text-[11px] text-muted-foreground">
+                    {format(new Date(req.created_at), "MMM d · HH:mm")}
+                  </span>
+                </div>
+
+                <div className="mt-3 flex gap-2">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => review.mutate({ req, approve: true })}
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-success py-2 text-sm font-bold text-success-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
+                  >
+                    {busy ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Check className="h-4 w-4" strokeWidth={3} />
+                    )}
+                    Approve Account
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => review.mutate({ req, approve: false })}
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-destructive py-2 text-sm font-bold text-destructive-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
+                  >
+                    <X className="h-4 w-4" strokeWidth={3} /> Reject
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+          {requests.length === 0 && (
+            <p className="rounded-xl border border-border bg-card/40 p-6 text-center text-sm text-muted-foreground">
+              No payments awaiting verification.
+            </p>
+          )}
+        </div>
+      </section>
+
 
       {/* User directory */}
       <section className="mb-8">
