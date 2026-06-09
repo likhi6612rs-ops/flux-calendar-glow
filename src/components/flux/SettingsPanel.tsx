@@ -27,7 +27,8 @@ import { cn } from "@/lib/utils";
 export function SettingsPanel() {
   const { theme, setTheme } = useTheme();
   const { user, isAdmin, signOut } = useAuth();
-  const { isPremium, openPaywall, cancel } = usePremium();
+  const { tier, openPaywall } = usePremium();
+  const isPaid = tier !== "free";
   const [feedback, setFeedback] = useState("");
   const [sending, setSending] = useState(false);
   const [open, setOpen] = useState(false);
