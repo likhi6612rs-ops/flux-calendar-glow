@@ -3,7 +3,7 @@ import { motion } from "motion/react";
 import { Lock, TrendingUp, Sparkles } from "lucide-react";
 import { useFlux, buildSeries } from "@/lib/flux-store";
 import { lastNDayKeys } from "@/lib/flux-date";
-import { usePremium, PREMIUM_PRICE, PREMIUM_CYCLE } from "@/lib/premium";
+import { usePremium, planForTier } from "@/lib/premium";
 import { TrendChart } from "./TrendChart";
 import { cn } from "@/lib/utils";
 
