@@ -193,12 +193,8 @@ function AdminPage() {
     [profiles, search],
   );
 
-  const adminCount = useMemo(
-    () => [...roleMap.values()].filter((r) => r === "admin").length,
-    [roleMap],
-  );
-
   if (!isAdmin) return null;
+
 
   return (
     <div className="mx-auto min-h-screen max-w-3xl px-5 pb-16 pt-8">
