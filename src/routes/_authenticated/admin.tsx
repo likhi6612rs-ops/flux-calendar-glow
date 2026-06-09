@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Users,
@@ -8,9 +8,16 @@ import {
   ShieldCheck,
   Search,
   Activity,
+  Check,
+  X,
+  Phone,
+  CreditCard,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { tierLabel, type Tier } from "@/lib/premium";
 import { format } from "date-fns";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -39,6 +46,9 @@ export const Route = createFileRoute("/_authenticated/admin")({
 interface ProfileRow {
   id: string;
   email: string;
+  full_name: string | null;
+  mobile: string | null;
+  tier: Tier;
   created_at: string;
   updated_at: string;
 }
@@ -50,6 +60,16 @@ interface FeedbackRow {
   id: string;
   email: string;
   message: string;
+  created_at: string;
+}
+interface SubRequestRow {
+  id: string;
+  user_id: string;
+  tier: Tier;
+  amount: number;
+  currency: string;
+  utr: string;
+  status: string;
   created_at: string;
 }
 
