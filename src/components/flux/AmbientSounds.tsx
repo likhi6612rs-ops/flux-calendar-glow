@@ -20,7 +20,8 @@ const SOUNDS: {
 ];
 
 export function AmbientSounds() {
-  const { isPremium, openPaywall } = usePremium();
+  const { hasTier, openPaywall } = usePremium();
+  const isUnlocked = hasTier("ultra");
   const [active, setActive] = useState<SoundId | null>(null);
   const [volume, setVolume] = useState(0.4);
 
