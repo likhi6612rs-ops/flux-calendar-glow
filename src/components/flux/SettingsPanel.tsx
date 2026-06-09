@@ -20,14 +20,15 @@ import {
 } from "@/components/ui/sheet";
 import { useTheme, THEMES } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
-import { usePremium } from "@/lib/premium";
+import { usePremium, tierLabel } from "@/lib/premium";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
 export function SettingsPanel() {
   const { theme, setTheme } = useTheme();
   const { user, isAdmin, signOut } = useAuth();
-  const { isPremium, openPaywall, cancel } = usePremium();
+  const { tier, openPaywall } = usePremium();
+  const isPaid = tier !== "free";
   const [feedback, setFeedback] = useState("");
   const [sending, setSending] = useState(false);
   const [open, setOpen] = useState(false);
@@ -104,32 +105,28 @@ export function SettingsPanel() {
 
           {/* Premium */}
           <div className="rounded-xl border border-amber-300/20 bg-amber-300/[0.06] p-3">
-            <p className="flex items-center gap-1.5 text-sm font-bold text-amber-300">
-              <Crown className="h-4 w-4" /> Flux Premium
+            <p className="flex items-center justify-between gap-1.5 text-sm font-bold text-amber-300">
+              <span className="flex items-center gap-1.5">
+                <Crown className="h-4 w-4" /> Flux Premium
+              </span>
+              <span className="rounded-full bg-amber-300/15 px-2 py-0.5 text-[11px] uppercase tracking-wide">
+                {tierLabel(tier)}
+              </span>
             </p>
             <p className="mb-3 mt-1 text-xs text-muted-foreground">
-              {isPremium
-                ? "Active — all advanced features unlocked."
-                : "Unlock AI breakdowns, 30-day analytics & soundscapes."}
+              {isPaid
+                ? `Active — your ${tierLabel(tier)} features are unlocked.`
+                : "Unlock the 12-month calendar, analytics, AI breakdowns & soundscapes."}
             </p>
-            {isPremium ? (
-              <button
-                onClick={cancel}
-                className="flex w-full items-center justify-center gap-2 rounded-lg border border-border py-2 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"
-              >
-                Deactivate (demo)
-              </button>
-            ) : (
-              <button
-                onClick={() => {
-                  setOpen(false);
-                  openPaywall("Flux Premium");
-                }}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-primary to-primary-glow py-2 text-sm font-bold text-primary-foreground transition-transform active:scale-[0.98]"
-              >
-                <Sparkles className="h-4 w-4" /> Go Premium
-              </button>
-            )}
+            <button
+              onClick={() => {
+                setOpen(false);
+                openPaywall("Flux Premium", isPaid ? "ultra" : "premium");
+              }}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-primary to-primary-glow py-2 text-sm font-bold text-primary-foreground transition-transform active:scale-[0.98]"
+            >
+              <Sparkles className="h-4 w-4" /> {isPaid ? "Upgrade plan" : "Go Premium"}
+            </button>
           </div>
 
 

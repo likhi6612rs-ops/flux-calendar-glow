@@ -3,7 +3,7 @@ import { motion } from "motion/react";
 import { Lock, TrendingUp, Sparkles } from "lucide-react";
 import { useFlux, buildSeries } from "@/lib/flux-store";
 import { lastNDayKeys } from "@/lib/flux-date";
-import { usePremium, PREMIUM_PRICE, PREMIUM_CYCLE } from "@/lib/premium";
+import { usePremium, planForTier } from "@/lib/premium";
 import { TrendChart } from "./TrendChart";
 import { cn } from "@/lib/utils";
 
@@ -66,7 +66,9 @@ function FocusScoreGraph() {
 }
 
 export function InsightsView() {
-  const { isPremium, openPaywall } = usePremium();
+  const { hasTier, openPaywall } = usePremium();
+  const unlocked = hasTier("pro");
+  const proPlan = planForTier("pro");
 
   return (
     <div className="relative">
@@ -75,16 +77,16 @@ export function InsightsView() {
           Productivity Insights
         </h2>
         <p className="text-xs text-muted-foreground">
-          Deep analytics on your execution consistency.
+          30-day procrastination analytics & execution consistency.
         </p>
       </div>
 
       <div
         className={cn(
           "space-y-5 transition-all duration-500",
-          !isPremium && "pointer-events-none select-none blur-md",
+          !unlocked && "pointer-events-none select-none blur-md",
         )}
-        aria-hidden={!isPremium}
+        aria-hidden={!unlocked}
       >
         <FocusScoreGraph />
         <div className="rounded-2xl border border-white/10 bg-card/40 p-4 backdrop-blur-sm">
@@ -93,7 +95,7 @@ export function InsightsView() {
         </div>
       </div>
 
-      {!isPremium && (
+      {!unlocked && (
         <div className="absolute inset-0 flex items-center justify-center p-2">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -105,22 +107,22 @@ export function InsightsView() {
               <Lock className="h-6 w-6 text-primary-foreground" />
             </div>
             <h3 className="text-lg font-extrabold tracking-tight">
-              Unlock Your Productivity Insights
+              30-Day Procrastination Analytics
             </h3>
             <p className="mt-1 text-sm text-muted-foreground">
               See your 30-day Focus Score, slip-day patterns, and consistency
               trends.
             </p>
             <p className="mt-3 text-sm font-semibold">
-              {PREMIUM_PRICE}
-              <span className="text-muted-foreground">/{PREMIUM_CYCLE}</span>
+              {proPlan.name} · ₹{proPlan.inr}
+              <span className="text-muted-foreground"> / month</span>
             </p>
             <button
               type="button"
-              onClick={() => openPaywall("Productivity Insights")}
+              onClick={() => openPaywall("Procrastination Analytics", "pro")}
               className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-primary to-primary-glow py-3 text-sm font-bold text-primary-foreground transition-transform active:scale-[0.98]"
             >
-              <Sparkles className="h-4 w-4" /> Go Premium
+              <Sparkles className="h-4 w-4" /> Unlock {proPlan.name}
             </button>
           </motion.div>
         </div>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Users,
@@ -8,9 +8,16 @@ import {
   ShieldCheck,
   Search,
   Activity,
+  Check,
+  X,
+  Phone,
+  CreditCard,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { tierLabel, type Tier } from "@/lib/premium";
 import { format } from "date-fns";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -39,6 +46,9 @@ export const Route = createFileRoute("/_authenticated/admin")({
 interface ProfileRow {
   id: string;
   email: string;
+  full_name: string | null;
+  mobile: string | null;
+  tier: Tier;
   created_at: string;
   updated_at: string;
 }
@@ -52,10 +62,21 @@ interface FeedbackRow {
   message: string;
   created_at: string;
 }
+interface SubRequestRow {
+  id: string;
+  user_id: string;
+  tier: Tier;
+  amount: number;
+  currency: string;
+  utr: string;
+  status: string;
+  created_at: string;
+}
 
 function AdminPage() {
   const { isAdmin, loading } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
 
   useEffect(() => {
@@ -68,7 +89,7 @@ function AdminPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, email, created_at, updated_at")
+        .select("id, email, full_name, mobile, tier, created_at, updated_at")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as ProfileRow[];
@@ -100,6 +121,61 @@ function AdminPage() {
     },
   });
 
+  const { data: requests = [] } = useQuery({
+    queryKey: ["admin", "subscription_requests"],
+    enabled: isAdmin,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("subscription_requests")
+        .select("id, user_id, tier, amount, currency, utr, status, created_at")
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as SubRequestRow[];
+    },
+  });
+
+  const profileById = useMemo(() => {
+    const m = new Map<string, ProfileRow>();
+    profiles.forEach((p) => m.set(p.id, p));
+    return m;
+  }, [profiles]);
+
+  const review = useMutation({
+    mutationFn: async ({
+      req,
+      approve,
+    }: {
+      req: SubRequestRow;
+      approve: boolean;
+    }) => {
+      const { error: reqErr } = await supabase
+        .from("subscription_requests")
+        .update({ status: approve ? "approved" : "rejected" })
+        .eq("id", req.id);
+      if (reqErr) throw reqErr;
+      if (approve) {
+        const { error: profErr } = await supabase
+          .from("profiles")
+          .update({ tier: req.tier })
+          .eq("id", req.user_id);
+        if (profErr) throw profErr;
+      }
+    },
+    onSuccess: (_d, vars) => {
+      toast.success(
+        vars.approve
+          ? `Approved — upgraded to ${tierLabel(vars.req.tier)}.`
+          : "Request rejected.",
+      );
+      queryClient.invalidateQueries({
+        queryKey: ["admin", "subscription_requests"],
+      });
+      queryClient.invalidateQueries({ queryKey: ["admin", "profiles"] });
+    },
+    onError: () => toast.error("Couldn't update this request. Try again."),
+  });
+
   const roleMap = useMemo(() => {
     const m = new Map<string, string>();
     roles.forEach((r) => {
@@ -117,12 +193,8 @@ function AdminPage() {
     [profiles, search],
   );
 
-  const adminCount = useMemo(
-    () => [...roleMap.values()].filter((r) => r === "admin").length,
-    [roleMap],
-  );
-
   if (!isAdmin) return null;
+
 
   return (
     <div className="mx-auto min-h-screen max-w-3xl px-5 pb-16 pt-8">
@@ -147,9 +219,93 @@ function AdminPage() {
       {/* Metrics */}
       <div className="mb-7 grid grid-cols-3 gap-3">
         <Metric icon={Users} label="Registered" value={profiles.length} />
-        <Metric icon={ShieldCheck} label="Admins" value={adminCount} />
+        <Metric icon={CreditCard} label="Pending" value={requests.length} />
         <Metric icon={MessageSquare} label="Feedback" value={feedback.length} />
       </div>
+
+      {/* Pending payment approvals */}
+      <section className="mb-8">
+        <h2 className="mb-3 flex items-center gap-2 text-lg font-bold tracking-tight">
+          <CreditCard className="h-4 w-4 text-primary" /> Pending Approvals
+          {requests.length > 0 && (
+            <span className="rounded-full bg-destructive/20 px-2 py-0.5 text-xs font-bold text-destructive">
+              {requests.length}
+            </span>
+          )}
+        </h2>
+        <div className="space-y-2.5">
+          {requests.map((req) => {
+            const p = profileById.get(req.user_id);
+            const busy =
+              review.isPending && review.variables?.req.id === req.id;
+            return (
+              <div
+                key={req.id}
+                className="rounded-2xl border border-border bg-card/40 p-4"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-bold">
+                      {p?.full_name || "Unnamed user"}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {p?.email ?? "—"}
+                    </p>
+                    {p?.mobile && (
+                      <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                        <Phone className="h-3 w-3" /> {p.mobile}
+                      </p>
+                    )}
+                  </div>
+                  <span className="rounded-full bg-primary/15 px-2.5 py-1 text-xs font-bold text-primary-glow">
+                    {tierLabel(req.tier)} · ₹{req.amount}
+                  </span>
+                </div>
+
+                <div className="mt-3 flex items-center gap-2 rounded-lg border border-border bg-background/40 px-3 py-2">
+                  <span className="text-xs text-muted-foreground">UTR</span>
+                  <span className="font-mono text-sm font-bold tracking-wider">
+                    {req.utr}
+                  </span>
+                  <span className="ml-auto text-[11px] text-muted-foreground">
+                    {format(new Date(req.created_at), "MMM d · HH:mm")}
+                  </span>
+                </div>
+
+                <div className="mt-3 flex gap-2">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => review.mutate({ req, approve: true })}
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-success py-2 text-sm font-bold text-success-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
+                  >
+                    {busy ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Check className="h-4 w-4" strokeWidth={3} />
+                    )}
+                    Approve Account
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => review.mutate({ req, approve: false })}
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-destructive py-2 text-sm font-bold text-destructive-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
+                  >
+                    <X className="h-4 w-4" strokeWidth={3} /> Reject
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+          {requests.length === 0 && (
+            <p className="rounded-xl border border-border bg-card/40 p-6 text-center text-sm text-muted-foreground">
+              No payments awaiting verification.
+            </p>
+          )}
+        </div>
+      </section>
+
 
       {/* User directory */}
       <section className="mb-8">

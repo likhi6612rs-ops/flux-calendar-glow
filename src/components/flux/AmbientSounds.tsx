@@ -20,7 +20,8 @@ const SOUNDS: {
 ];
 
 export function AmbientSounds() {
-  const { isPremium, openPaywall } = usePremium();
+  const { hasTier, openPaywall } = usePremium();
+  const isUnlocked = hasTier("ultra");
   const [active, setActive] = useState<SoundId | null>(null);
   const [volume, setVolume] = useState(0.4);
 
@@ -93,8 +94,8 @@ export function AmbientSounds() {
   useEffect(() => () => stop(), []);
 
   const toggle = (id: SoundId) => {
-    if (!isPremium) {
-      openPaywall("Ambient Soundscapes");
+    if (!isUnlocked) {
+      openPaywall("Ambient Soundscapes", "ultra");
       return;
     }
     if (active === id) stop();
@@ -130,7 +131,7 @@ export function AmbientSounds() {
           );
         })}
       </div>
-      {isPremium && active && (
+      {isUnlocked && active && (
         <div className="mt-3 flex items-center gap-2">
           <Volume2 className="h-4 w-4 text-muted-foreground" />
           <input

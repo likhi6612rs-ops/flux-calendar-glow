@@ -29,9 +29,32 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
-const credSchema = z.object({
+const COUNTRY_CODES = [
+  { code: "+91", label: "🇮🇳 +91" },
+  { code: "+1", label: "🇺🇸 +1" },
+  { code: "+44", label: "🇬🇧 +44" },
+  { code: "+61", label: "🇦🇺 +61" },
+  { code: "+971", label: "🇦🇪 +971" },
+  { code: "+65", label: "🇸🇬 +65" },
+  { code: "+49", label: "🇩🇪 +49" },
+  { code: "+81", label: "🇯🇵 +81" },
+];
+
+const signinSchema = z.object({
   email: z.string().trim().email("Enter a valid email").max(255),
   password: z.string().min(6, "Password must be at least 6 characters").max(72),
+});
+
+const signupSchema = signinSchema.extend({
+  fullName: z
+    .string()
+    .trim()
+    .min(2, "Enter your full name")
+    .max(80, "Name is too long"),
+  mobile: z
+    .string()
+    .trim()
+    .regex(/^\d{6,14}$/, "Enter a valid mobile number"),
 });
 
 function AuthPage() {
@@ -40,6 +63,9 @@ function AuthPage() {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [countryCode, setCountryCode] = useState("+91");
+  const [mobile, setMobile] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -50,21 +76,39 @@ function AuthPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
-    const parsed = credSchema.safeParse({ email, password });
-    if (!parsed.success) {
-      setError(parsed.error.issues[0].message);
-      return;
-    }
     setBusy(true);
     try {
       if (mode === "signup") {
+        const parsed = signupSchema.safeParse({
+          email,
+          password,
+          fullName,
+          mobile,
+        });
+        if (!parsed.success) {
+          setError(parsed.error.issues[0].message);
+          setBusy(false);
+          return;
+        }
         const { error } = await supabase.auth.signUp({
           email: parsed.data.email,
           password: parsed.data.password,
-          options: { emailRedirectTo: window.location.origin },
+          options: {
+            emailRedirectTo: window.location.origin,
+            data: {
+              full_name: parsed.data.fullName,
+              mobile: `${countryCode}${parsed.data.mobile}`,
+            },
+          },
         });
         if (error) throw error;
       } else {
+        const parsed = signinSchema.safeParse({ email, password });
+        if (!parsed.success) {
+          setError(parsed.error.issues[0].message);
+          setBusy(false);
+          return;
+        }
         const { error } = await supabase.auth.signInWithPassword({
           email: parsed.data.email,
           password: parsed.data.password,
@@ -93,7 +137,7 @@ function AuthPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-5">
+    <div className="flex min-h-screen items-center justify-center bg-background px-5 py-10">
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -125,6 +169,17 @@ function AuthPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">
+          {mode === "signup" && (
+            <input
+              type="text"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Full name"
+              aria-label="Full name"
+              autoComplete="name"
+              className="w-full rounded-xl border border-input bg-card/60 px-4 py-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary"
+            />
+          )}
           <input
             type="email"
             value={email}
@@ -134,6 +189,34 @@ function AuthPage() {
             autoComplete="email"
             className="w-full rounded-xl border border-input bg-card/60 px-4 py-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary"
           />
+          {mode === "signup" && (
+            <div className="flex gap-2">
+              <select
+                value={countryCode}
+                onChange={(e) => setCountryCode(e.target.value)}
+                aria-label="Country code"
+                className="rounded-xl border border-input bg-card/60 px-3 py-3 text-sm outline-none transition-colors focus:border-primary"
+              >
+                {COUNTRY_CODES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="tel"
+                value={mobile}
+                onChange={(e) =>
+                  setMobile(e.target.value.replace(/\D/g, "").slice(0, 14))
+                }
+                placeholder="Mobile number"
+                aria-label="Mobile number"
+                autoComplete="tel-national"
+                inputMode="numeric"
+                className="w-full flex-1 rounded-xl border border-input bg-card/60 px-4 py-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary"
+              />
+            </div>
+          )}
           <input
             type="password"
             value={password}
@@ -150,7 +233,7 @@ function AuthPage() {
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
           >
             {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-            {mode === "signin" ? "Sign In" : "Sign Up"}
+            {mode === "signin" ? "Sign In" : "Create account"}
           </button>
         </form>
 

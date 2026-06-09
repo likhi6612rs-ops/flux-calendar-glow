@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { FluxProvider } from "@/lib/flux-store";
 import { PremiumProvider } from "@/lib/premium";
 import { FluxApp } from "@/components/flux/FluxApp";
+import { VerificationGate } from "@/components/flux/VerificationGate";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
@@ -43,7 +44,9 @@ function Index() {
   return (
     <FluxProvider>
       <PremiumProvider>
-        <FluxApp />
+        <VerificationGate>
+          <FluxApp />
+        </VerificationGate>
       </PremiumProvider>
     </FluxProvider>
   );

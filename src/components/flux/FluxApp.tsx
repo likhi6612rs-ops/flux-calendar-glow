@@ -11,7 +11,7 @@ import {
   PanelRightOpen,
 } from "lucide-react";
 import { useFlux } from "@/lib/flux-store";
-import { usePremium } from "@/lib/premium";
+import { usePremium, tierLabel } from "@/lib/premium";
 import { useAuth } from "@/lib/auth";
 import { MultiMonthCalendar } from "./MultiMonthCalendar";
 import { ProcrastinationTracker } from "./ProcrastinationTracker";
@@ -22,6 +22,7 @@ import { SettingsPanel } from "./SettingsPanel";
 import { InstallPrompt } from "./InstallPrompt";
 import { UpdateBanner } from "./UpdateBanner";
 import { PaywallModal } from "./PaywallModal";
+import { TierGate } from "./TierGate";
 import { cn } from "@/lib/utils";
 
 type ModuleId = "calendar" | "tasks" | "focus" | "insights";
@@ -50,7 +51,14 @@ function CenterModule({ id }: { id: ModuleId }) {
     return (
       <div className="space-y-6">
         <ProcrastinationTracker />
-        <MultiMonthCalendar />
+        <TierGate
+          requiredTier="premium"
+          feature="12-Month Calendar"
+          title="12-Month Swipeable Calendar"
+          description="Plan your whole year and snap back to Today instantly."
+        >
+          <MultiMonthCalendar />
+        </TierGate>
       </div>
     );
   if (id === "tasks") return <TaskList />;
@@ -61,7 +69,7 @@ function CenterModule({ id }: { id: ModuleId }) {
 export function FluxApp() {
   const desktop = useIsDesktop();
   const { user } = useAuth();
-  const { isPremium, openPaywall } = usePremium();
+  const { tier, hasTier, openPaywall } = usePremium();
   const { procrastination } = useFlux();
 
   const [active, setActive] = useState<ModuleId>("calendar");
@@ -129,7 +137,7 @@ export function FluxApp() {
                       <span className="relative inline-flex h-2 w-2 rounded-full bg-destructive" />
                     </span>
                   )}
-                  {item.id === "insights" && !isPremium && (
+                  {item.id === "insights" && !hasTier("pro") && (
                     <Crown className="ml-auto h-3.5 w-3.5 text-amber-300/80" />
                   )}
                   {item.id === "focus" && (
@@ -145,22 +153,25 @@ export function FluxApp() {
               ))}
             </nav>
 
-            {!isPremium ? (
+            {tier === "free" ? (
               <button
-                onClick={() => openPaywall("Flux Premium")}
+                onClick={() => openPaywall("Flux Premium", "premium")}
                 className="mb-3 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-primary/20 to-primary-glow/10 p-3 text-left transition-transform active:scale-[0.98]"
               >
                 <p className="flex items-center gap-1.5 text-xs font-bold text-primary-glow">
                   <Sparkles className="h-3.5 w-3.5" /> Go Premium
                 </p>
                 <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
-                  Unlock AI breakdowns, analytics & soundscapes.
+                  Unlock the calendar, analytics, AI breakdowns & soundscapes.
                 </p>
               </button>
             ) : (
-              <div className="mb-3 flex items-center gap-2 rounded-2xl border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-xs font-bold text-amber-300">
-                <Crown className="h-3.5 w-3.5" /> Premium active
-              </div>
+              <button
+                onClick={() => openPaywall("Flux Premium", "ultra")}
+                className="mb-3 flex w-full items-center gap-2 rounded-2xl border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-xs font-bold text-amber-300 transition-transform active:scale-[0.98]"
+              >
+                <Crown className="h-3.5 w-3.5" /> {tierLabel(tier)} active
+              </button>
             )}
 
             <div className="flex items-center gap-2 rounded-2xl border border-white/5 bg-background/40 px-3 py-2">
@@ -251,7 +262,7 @@ export function FluxApp() {
                     {item.id === "calendar" && hasDebt && (
                       <span className="absolute -right-1.5 -top-1 h-2 w-2 rounded-full bg-destructive ring-2 ring-popover" />
                     )}
-                    {item.id === "insights" && !isPremium && (
+                    {item.id === "insights" && !hasTier("pro") && (
                       <Crown className="absolute -right-2 -top-1 h-2.5 w-2.5 text-amber-300" />
                     )}
                   </span>
