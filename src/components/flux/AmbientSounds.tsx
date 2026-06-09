@@ -131,7 +131,7 @@ export function AmbientSounds() {
           );
         })}
       </div>
-      {isPremium && active && (
+      {isUnlocked && active && (
         <div className="mt-3 flex items-center gap-2">
           <Volume2 className="h-4 w-4 text-muted-foreground" />
           <input
