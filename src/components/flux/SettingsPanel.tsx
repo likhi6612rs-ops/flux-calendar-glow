@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/sheet";
 import { useTheme, THEMES } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
-import { usePremium } from "@/lib/premium";
+import { usePremium, tierLabel } from "@/lib/premium";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
