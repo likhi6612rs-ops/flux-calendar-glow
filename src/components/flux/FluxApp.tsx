@@ -255,7 +255,7 @@ export function FluxApp() {
                     {item.id === "calendar" && hasDebt && (
                       <span className="absolute -right-1.5 -top-1 h-2 w-2 rounded-full bg-destructive ring-2 ring-popover" />
                     )}
-                    {item.id === "insights" && !isPremium && (
+                    {item.id === "insights" && !hasTier("pro") && (
                       <Crown className="absolute -right-2 -top-1 h-2.5 w-2.5 text-amber-300" />
                     )}
                   </span>
