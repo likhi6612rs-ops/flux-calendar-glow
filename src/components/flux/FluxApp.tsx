@@ -51,7 +51,14 @@ function CenterModule({ id }: { id: ModuleId }) {
     return (
       <div className="space-y-6">
         <ProcrastinationTracker />
-        <MultiMonthCalendar />
+        <TierGate
+          requiredTier="premium"
+          feature="12-Month Calendar"
+          title="12-Month Swipeable Calendar"
+          description="Plan your whole year and snap back to Today instantly."
+        >
+          <MultiMonthCalendar />
+        </TierGate>
       </div>
     );
   if (id === "tasks") return <TaskList />;
