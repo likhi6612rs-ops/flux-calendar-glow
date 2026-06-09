@@ -145,22 +145,25 @@ export function FluxApp() {
               ))}
             </nav>
 
-            {!isPremium ? (
+            {tier === "free" ? (
               <button
-                onClick={() => openPaywall("Flux Premium")}
+                onClick={() => openPaywall("Flux Premium", "premium")}
                 className="mb-3 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-primary/20 to-primary-glow/10 p-3 text-left transition-transform active:scale-[0.98]"
               >
                 <p className="flex items-center gap-1.5 text-xs font-bold text-primary-glow">
                   <Sparkles className="h-3.5 w-3.5" /> Go Premium
                 </p>
                 <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
-                  Unlock AI breakdowns, analytics & soundscapes.
+                  Unlock the calendar, analytics, AI breakdowns & soundscapes.
                 </p>
               </button>
             ) : (
-              <div className="mb-3 flex items-center gap-2 rounded-2xl border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-xs font-bold text-amber-300">
-                <Crown className="h-3.5 w-3.5" /> Premium active
-              </div>
+              <button
+                onClick={() => openPaywall("Flux Premium", "ultra")}
+                className="mb-3 flex w-full items-center gap-2 rounded-2xl border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-xs font-bold text-amber-300 transition-transform active:scale-[0.98]"
+              >
+                <Crown className="h-3.5 w-3.5" /> {tierLabel(tier)} active
+              </button>
             )}
 
             <div className="flex items-center gap-2 rounded-2xl border border-white/5 bg-background/40 px-3 py-2">
