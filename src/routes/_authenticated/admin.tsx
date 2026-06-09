@@ -121,6 +121,61 @@ function AdminPage() {
     },
   });
 
+  const { data: requests = [] } = useQuery({
+    queryKey: ["admin", "subscription_requests"],
+    enabled: isAdmin,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("subscription_requests")
+        .select("id, user_id, tier, amount, currency, utr, status, created_at")
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as SubRequestRow[];
+    },
+  });
+
+  const profileById = useMemo(() => {
+    const m = new Map<string, ProfileRow>();
+    profiles.forEach((p) => m.set(p.id, p));
+    return m;
+  }, [profiles]);
+
+  const review = useMutation({
+    mutationFn: async ({
+      req,
+      approve,
+    }: {
+      req: SubRequestRow;
+      approve: boolean;
+    }) => {
+      const { error: reqErr } = await supabase
+        .from("subscription_requests")
+        .update({ status: approve ? "approved" : "rejected" })
+        .eq("id", req.id);
+      if (reqErr) throw reqErr;
+      if (approve) {
+        const { error: profErr } = await supabase
+          .from("profiles")
+          .update({ tier: req.tier })
+          .eq("id", req.user_id);
+        if (profErr) throw profErr;
+      }
+    },
+    onSuccess: (_d, vars) => {
+      toast.success(
+        vars.approve
+          ? `Approved — upgraded to ${tierLabel(vars.req.tier)}.`
+          : "Request rejected.",
+      );
+      queryClient.invalidateQueries({
+        queryKey: ["admin", "subscription_requests"],
+      });
+      queryClient.invalidateQueries({ queryKey: ["admin", "profiles"] });
+    },
+    onError: () => toast.error("Couldn't update this request. Try again."),
+  });
+
   const roleMap = useMemo(() => {
     const m = new Map<string, string>();
     roles.forEach((r) => {
