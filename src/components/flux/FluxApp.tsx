@@ -129,7 +129,7 @@ export function FluxApp() {
                       <span className="relative inline-flex h-2 w-2 rounded-full bg-destructive" />
                     </span>
                   )}
-                  {item.id === "insights" && !isPremium && (
+                  {item.id === "insights" && !hasTier("pro") && (
                     <Crown className="ml-auto h-3.5 w-3.5 text-amber-300/80" />
                   )}
                   {item.id === "focus" && (
