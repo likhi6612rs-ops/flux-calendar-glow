@@ -11,7 +11,7 @@ import {
   PanelRightOpen,
 } from "lucide-react";
 import { useFlux } from "@/lib/flux-store";
-import { usePremium } from "@/lib/premium";
+import { usePremium, tierLabel } from "@/lib/premium";
 import { useAuth } from "@/lib/auth";
 import { MultiMonthCalendar } from "./MultiMonthCalendar";
 import { ProcrastinationTracker } from "./ProcrastinationTracker";
@@ -22,6 +22,7 @@ import { SettingsPanel } from "./SettingsPanel";
 import { InstallPrompt } from "./InstallPrompt";
 import { UpdateBanner } from "./UpdateBanner";
 import { PaywallModal } from "./PaywallModal";
+import { TierGate } from "./TierGate";
 import { cn } from "@/lib/utils";
 
 type ModuleId = "calendar" | "tasks" | "focus" | "insights";
