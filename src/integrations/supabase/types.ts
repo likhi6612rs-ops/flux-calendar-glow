@@ -42,26 +42,74 @@ export type Database = {
         Row: {
           created_at: string
           email: string
+          email_verified: boolean
+          full_name: string | null
           id: string
+          mobile: string | null
           theme: string
+          tier: string
           timer_completion_count: number
           updated_at: string
         }
         Insert: {
           created_at?: string
           email: string
+          email_verified?: boolean
+          full_name?: string | null
           id: string
+          mobile?: string | null
           theme?: string
+          tier?: string
           timer_completion_count?: number
           updated_at?: string
         }
         Update: {
           created_at?: string
           email?: string
+          email_verified?: boolean
+          full_name?: string | null
           id?: string
+          mobile?: string | null
           theme?: string
+          tier?: string
           timer_completion_count?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      subscription_requests: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          id: string
+          status: string
+          tier: string
+          updated_at: string
+          user_id: string
+          utr: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          id?: string
+          status?: string
+          tier: string
+          updated_at?: string
+          user_id: string
+          utr: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          status?: string
+          tier?: string
+          updated_at?: string
+          user_id?: string
+          utr?: string
         }
         Relationships: []
       }
