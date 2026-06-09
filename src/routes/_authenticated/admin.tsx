@@ -76,6 +76,7 @@ interface SubRequestRow {
 function AdminPage() {
   const { isAdmin, loading } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
 
   useEffect(() => {
@@ -88,7 +89,7 @@ function AdminPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, email, created_at, updated_at")
+        .select("id, email, full_name, mobile, tier, created_at, updated_at")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as ProfileRow[];
