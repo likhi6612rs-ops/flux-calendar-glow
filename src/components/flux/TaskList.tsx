@@ -66,7 +66,7 @@ export function TaskList() {
   };
 
   const openBreakdown = (task: TaskSpan) => {
-    guard("AI Task Breakdown", async () => {
+    guard("AI Task Breakdown", "ultra", async () => {
       setBreakdownFor(task);
       setSubtasks(null);
       setLoading(true);
