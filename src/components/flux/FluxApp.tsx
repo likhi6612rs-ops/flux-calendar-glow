@@ -61,7 +61,7 @@ function CenterModule({ id }: { id: ModuleId }) {
 export function FluxApp() {
   const desktop = useIsDesktop();
   const { user } = useAuth();
-  const { isPremium, openPaywall } = usePremium();
+  const { tier, hasTier, openPaywall } = usePremium();
   const { procrastination } = useFlux();
 
   const [active, setActive] = useState<ModuleId>("calendar");
