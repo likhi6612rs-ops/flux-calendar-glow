@@ -578,3 +578,51 @@ function Metric({
     </div>
   );
 }
+
+function Toggle({
+  label,
+  checked,
+  onChange,
+  disabled,
+  icon: Icon,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  disabled?: boolean;
+  icon?: typeof Users;
+}) {
+  return (
+    <label
+      className={cn(
+        "flex cursor-pointer items-center justify-between gap-3 rounded-lg px-2 py-2.5",
+        disabled && "cursor-not-allowed opacity-60",
+      )}
+    >
+      <span className="flex items-center gap-2 text-sm font-medium">
+        {Icon && <Icon className="h-4 w-4 text-primary" />}
+        {label}
+      </span>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-label={label}
+        disabled={disabled}
+        onClick={() => !disabled && onChange(!checked)}
+        className={cn(
+          "relative h-6 w-11 shrink-0 rounded-full transition-colors",
+          checked ? "bg-primary" : "bg-secondary",
+        )}
+      >
+        <span
+          className={cn(
+            "absolute top-0.5 h-5 w-5 rounded-full bg-background shadow transition-transform",
+            checked ? "translate-x-[22px]" : "translate-x-0.5",
+          )}
+        />
+      </button>
+    </label>
+  );
+}
+
