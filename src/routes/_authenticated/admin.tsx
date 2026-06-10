@@ -289,6 +289,87 @@ function AdminPage() {
         <Metric icon={MessageSquare} label="Feedback" value={feedback.length} />
       </div>
 
+      {/* Live feature control panel */}
+      <section className="mb-8">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
+            <SlidersHorizontal className="h-4 w-4 text-primary" /> Feature
+            Control
+          </h2>
+          <span className="rounded-full bg-secondary px-2.5 py-0.5 font-mono text-xs font-semibold text-muted-foreground">
+            v{appConfig?.app_version ?? "1.0.0"}
+          </span>
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card/40 p-4">
+          <p className="mb-3 text-xs text-muted-foreground">
+            Toggle modules on or off and broadcast changes to every connected
+            user in real time.
+          </p>
+
+          <div className="space-y-1">
+            {(
+              [
+                { key: "tasks", label: "Tasks module" },
+                { key: "focus", label: "Focus timer & soundscapes" },
+                { key: "insights", label: "Insights & analytics" },
+              ] as { key: keyof AppFeatures; label: string }[]
+            ).map(({ key, label }) => (
+              <Toggle
+                key={key}
+                label={label}
+                checked={!!draft?.[key]}
+                onChange={(v) =>
+                  setDraft((d) => (d ? { ...d, [key]: v } : d))
+                }
+              />
+            ))}
+            <Toggle
+              label="Calendar module (always on)"
+              checked
+              disabled
+              onChange={() => {}}
+            />
+          </div>
+
+          <div className="mt-4 rounded-xl border border-border bg-background/40 p-3">
+            <Toggle
+              label="Promotional banner"
+              icon={Megaphone}
+              checked={!!draft?.promo}
+              onChange={(v) => setDraft((d) => (d ? { ...d, promo: v } : d))}
+            />
+            {draft?.promo && (
+              <input
+                value={draft.promo_text}
+                onChange={(e) =>
+                  setDraft((d) => (d ? { ...d, promo_text: e.target.value } : d))
+                }
+                maxLength={140}
+                placeholder="🎉 New AI breakdowns just landed — try them now!"
+                className="mt-2 w-full rounded-lg border border-input bg-card/60 px-3 py-2 text-sm outline-none focus:border-primary"
+              />
+            )}
+          </div>
+
+          <button
+            type="button"
+            disabled={!dirty || publish.isPending}
+            onClick={() => draft && publish.mutate(draft)}
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-primary-glow py-3 text-sm font-bold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-40"
+          >
+            {publish.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Rocket className="h-4 w-4" />
+            )}
+            {dirty ? "Push update to all users" : "No pending changes"}
+          </button>
+        </div>
+      </section>
+
+
+
       {/* Pending payment approvals */}
       <section className="mb-8">
         <h2 className="mb-3 flex items-center gap-2 text-lg font-bold tracking-tight">
