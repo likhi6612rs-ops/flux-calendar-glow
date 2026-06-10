@@ -10,6 +10,7 @@ import {
   WEEKDAYS,
 } from "@/lib/flux-date";
 import { useFlux } from "@/lib/flux-store";
+import { usePremium } from "@/lib/premium";
 import { cn } from "@/lib/utils";
 
 export function MultiMonthCalendar() {
@@ -18,11 +19,20 @@ export function MultiMonthCalendar() {
   const [[index, dir], setState] = useState<[number, number]>([todayIdx, 0]);
   const { selectedDate, setSelectedDate, isDayComplete, hasTasks, dayRatio } =
     useFlux();
+  const { hasTier, openPaywall } = usePremium();
+
+  // Free users get the current month fully unlocked, but travelling to any
+  // other month triggers the premium upgrade card.
+  const canTravel = hasTier("premium");
 
   const month = months[index];
 
   const go = (next: number) => {
     if (next < 0 || next >= months.length) return;
+    if (!canTravel && next !== todayIdx) {
+      openPaywall("12-Month Calendar", "premium");
+      return;
+    }
     setState([next, next > index ? 1 : -1]);
   };
 
