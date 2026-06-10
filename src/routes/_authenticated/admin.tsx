@@ -28,6 +28,7 @@ import {
   type AppFeatures,
 } from "@/lib/app-config";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 /** Bumps the patch segment of a dotted version, e.g. 1.0.1 -> 1.0.2. */
 function bumpVersion(v: string): string {
