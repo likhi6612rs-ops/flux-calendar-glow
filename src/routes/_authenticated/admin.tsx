@@ -188,7 +188,7 @@ function AdminPage() {
       const next = bumpVersion(appConfig?.app_version ?? "1.0.0");
       const { error } = await supabase
         .from("app_config")
-        .update({ app_version: next, features })
+        .update({ app_version: next, features: features as unknown as Json })
         .eq("id", 1);
       if (error) throw error;
       return next;
