@@ -67,14 +67,25 @@ export function FluxApp() {
   const { user } = useAuth();
   const { tier, hasTier, openPaywall } = usePremium();
   const { procrastination } = useFlux();
+  const { config } = useAppConfig();
 
   const [active, setActive] = useState<ModuleId>("calendar");
   const [rightOpen, setRightOpen] = useState(true);
 
+  // Admin-controlled feature switches decide which tabs are live. Calendar
+  // always stays available so the dashboard is never empty.
+  const navItems = NAV.filter(
+    (item) => item.id === "calendar" || config.features[item.id] !== false,
+  );
+
   const hasDebt = procrastination(3).pending > 0;
+  // Fall back to calendar if the admin disabled the active module.
+  const enabledId: ModuleId = navItems.some((n) => n.id === active)
+    ? active
+    : "calendar";
   // On desktop the focus pane lives on the right, so the center never shows it.
   const centerModule: ModuleId =
-    desktop && active === "focus" ? "calendar" : active;
+    desktop && enabledId === "focus" ? "calendar" : enabledId;
 
   const onNav = (id: ModuleId) => {
     if (desktop && id === "focus") {
@@ -92,6 +103,7 @@ export function FluxApp() {
       : active === id;
 
   const initials = (user?.email ?? "F").slice(0, 1).toUpperCase();
+
 
   return (
     <div className="min-h-screen overflow-x-hidden">
