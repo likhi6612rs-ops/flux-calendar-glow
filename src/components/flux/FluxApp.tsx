@@ -216,6 +216,14 @@ export function FluxApp() {
           )}
 
           <div className="mx-auto max-w-2xl">
+            {config.features.promo && config.features.promo_text && (
+              <div className="mb-5 flex items-center gap-3 rounded-2xl border border-primary/25 bg-gradient-to-r from-primary/15 to-primary-glow/10 p-4">
+                <Sparkles className="h-5 w-5 shrink-0 text-primary-glow" />
+                <p className="text-sm font-semibold text-foreground/90">
+                  {config.features.promo_text}
+                </p>
+              </div>
+            )}
             <AnimatePresence mode="wait">
               <motion.div
                 key={centerModule}
