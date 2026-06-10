@@ -13,6 +13,9 @@ import {
   Phone,
   CreditCard,
   Loader2,
+  SlidersHorizontal,
+  Megaphone,
+  Rocket,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
