@@ -254,7 +254,7 @@ export function FluxApp() {
       {!desktop && (
         <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-popover/90 px-2 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl">
           <div className="mx-auto flex max-w-md items-stretch justify-around">
-            {NAV.map((item) => {
+            {navItems.map((item) => {
               const on = navActive(item.id);
               return (
                 <button
