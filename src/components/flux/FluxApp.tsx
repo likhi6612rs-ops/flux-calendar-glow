@@ -126,7 +126,7 @@ export function FluxApp() {
             </div>
 
             <nav className="flex flex-1 flex-col gap-1">
-              {NAV.map((item) => (
+              {navItems.map((item) => (
                 <button
                   key={item.id}
                   onClick={() => onNav(item.id)}
