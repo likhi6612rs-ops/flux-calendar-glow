@@ -68,8 +68,11 @@ export function MultiMonthCalendar() {
           >
             <ChevronRight className="h-4 w-4" />
           </button>
-          <h2 className="ml-2 text-lg font-extrabold tracking-tight">
+          <h2 className="ml-2 flex items-center gap-1.5 text-lg font-extrabold tracking-tight">
             {month.label}
+            {!canTravel && (
+              <Crown className="h-3.5 w-3.5 text-amber-300/80" />
+            )}
           </h2>
         </div>
         <button
