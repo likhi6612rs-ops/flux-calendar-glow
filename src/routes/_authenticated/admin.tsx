@@ -151,6 +151,55 @@ function AdminPage() {
     },
   });
 
+  /* ----- Live feature control panel ----- */
+  const { data: appConfig } = useQuery({
+    queryKey: ["admin", "app_config"],
+    enabled: isAdmin,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("app_config")
+        .select("app_version, features")
+        .eq("id", 1)
+        .maybeSingle();
+      if (error) throw error;
+      return {
+        app_version: data?.app_version ?? "1.0.0",
+        features: {
+          ...DEFAULT_FEATURES,
+          ...((data?.features ?? {}) as Partial<AppFeatures>),
+        } as AppFeatures,
+      };
+    },
+  });
+
+  const [draft, setDraft] = useState<AppFeatures | null>(null);
+  useEffect(() => {
+    if (appConfig && !draft) setDraft(appConfig.features);
+  }, [appConfig, draft]);
+
+  const dirty =
+    !!draft &&
+    !!appConfig &&
+    JSON.stringify(draft) !== JSON.stringify(appConfig.features);
+
+  const publish = useMutation({
+    mutationFn: async (features: AppFeatures) => {
+      const next = bumpVersion(appConfig?.app_version ?? "1.0.0");
+      const { error } = await supabase
+        .from("app_config")
+        .update({ app_version: next, features })
+        .eq("id", 1);
+      if (error) throw error;
+      return next;
+    },
+    onSuccess: (next) => {
+      toast.success(`Pushed live · v${next} sent to all users.`);
+      queryClient.invalidateQueries({ queryKey: ["admin", "app_config"] });
+    },
+    onError: () => toast.error("Couldn't push the update. Try again."),
+  });
+
+
   const profileById = useMemo(() => {
     const m = new Map<string, ProfileRow>();
     profiles.forEach((p) => m.set(p.id, p));
