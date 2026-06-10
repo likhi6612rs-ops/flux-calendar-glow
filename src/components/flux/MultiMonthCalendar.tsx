@@ -158,8 +158,9 @@ export function MultiMonthCalendar() {
       </div>
 
       <p className="mt-3 text-center text-[11px] text-muted-foreground/60">
-        Swipe or use arrows to travel through {months[0].shortLabel} –{" "}
-        {months[months.length - 1].shortLabel}
+        {canTravel
+          ? `Swipe or use arrows to travel through ${months[0].shortLabel} – ${months[months.length - 1].shortLabel}`
+          : "Unlock Premium to swipe across all 12 months"}
       </p>
     </section>
   );
