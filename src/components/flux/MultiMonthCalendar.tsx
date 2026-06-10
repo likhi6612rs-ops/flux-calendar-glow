@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { AnimatePresence, motion, type PanInfo } from "motion/react";
-import { Check, ChevronLeft, ChevronRight, CalendarCheck } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, CalendarCheck, Crown } from "lucide-react";
 import {
   buildMonths,
   currentMonthIndex,
