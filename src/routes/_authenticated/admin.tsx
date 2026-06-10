@@ -21,7 +21,20 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { tierLabel, type Tier } from "@/lib/premium";
+import {
+  DEFAULT_FEATURES,
+  isNewerVersion,
+  type AppFeatures,
+} from "@/lib/app-config";
 import { format } from "date-fns";
+
+/** Bumps the patch segment of a dotted version, e.g. 1.0.1 -> 1.0.2. */
+function bumpVersion(v: string): string {
+  const parts = v.split(".").map((n) => parseInt(n, 10) || 0);
+  while (parts.length < 3) parts.push(0);
+  parts[2] += 1;
+  return parts.join(".");
+}
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
