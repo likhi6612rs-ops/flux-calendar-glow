@@ -51,14 +51,9 @@ function CenterModule({ id }: { id: ModuleId }) {
     return (
       <div className="space-y-6">
         <ProcrastinationTracker />
-        <TierGate
-          requiredTier="premium"
-          feature="12-Month Calendar"
-          title="12-Month Swipeable Calendar"
-          description="Plan your whole year and snap back to Today instantly."
-        >
-          <MultiMonthCalendar />
-        </TierGate>
+        {/* Current month is free for everyone; navigating to other months
+            triggers the premium upgrade card from inside the calendar. */}
+        <MultiMonthCalendar />
       </div>
     );
   if (id === "tasks") return <TaskList />;
