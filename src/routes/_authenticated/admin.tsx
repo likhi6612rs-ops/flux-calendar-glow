@@ -13,12 +13,30 @@ import {
   Phone,
   CreditCard,
   Loader2,
+  SlidersHorizontal,
+  Megaphone,
+  Rocket,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { useAuth } from "@/lib/auth";
 import { tierLabel, type Tier } from "@/lib/premium";
+import {
+  DEFAULT_FEATURES,
+  isNewerVersion,
+  type AppFeatures,
+} from "@/lib/app-config";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+
+/** Bumps the patch segment of a dotted version, e.g. 1.0.1 -> 1.0.2. */
+function bumpVersion(v: string): string {
+  const parts = v.split(".").map((n) => parseInt(n, 10) || 0);
+  while (parts.length < 3) parts.push(0);
+  parts[2] += 1;
+  return parts.join(".");
+}
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
@@ -135,6 +153,55 @@ function AdminPage() {
     },
   });
 
+  /* ----- Live feature control panel ----- */
+  const { data: appConfig } = useQuery({
+    queryKey: ["admin", "app_config"],
+    enabled: isAdmin,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("app_config")
+        .select("app_version, features")
+        .eq("id", 1)
+        .maybeSingle();
+      if (error) throw error;
+      return {
+        app_version: data?.app_version ?? "1.0.0",
+        features: {
+          ...DEFAULT_FEATURES,
+          ...((data?.features ?? {}) as Partial<AppFeatures>),
+        } as AppFeatures,
+      };
+    },
+  });
+
+  const [draft, setDraft] = useState<AppFeatures | null>(null);
+  useEffect(() => {
+    if (appConfig && !draft) setDraft(appConfig.features);
+  }, [appConfig, draft]);
+
+  const dirty =
+    !!draft &&
+    !!appConfig &&
+    JSON.stringify(draft) !== JSON.stringify(appConfig.features);
+
+  const publish = useMutation({
+    mutationFn: async (features: AppFeatures) => {
+      const next = bumpVersion(appConfig?.app_version ?? "1.0.0");
+      const { error } = await supabase
+        .from("app_config")
+        .update({ app_version: next, features: features as unknown as Json })
+        .eq("id", 1);
+      if (error) throw error;
+      return next;
+    },
+    onSuccess: (next) => {
+      toast.success(`Pushed live · v${next} sent to all users.`);
+      queryClient.invalidateQueries({ queryKey: ["admin", "app_config"] });
+    },
+    onError: () => toast.error("Couldn't push the update. Try again."),
+  });
+
+
   const profileById = useMemo(() => {
     const m = new Map<string, ProfileRow>();
     profiles.forEach((p) => m.set(p.id, p));
@@ -222,6 +289,87 @@ function AdminPage() {
         <Metric icon={CreditCard} label="Pending" value={requests.length} />
         <Metric icon={MessageSquare} label="Feedback" value={feedback.length} />
       </div>
+
+      {/* Live feature control panel */}
+      <section className="mb-8">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
+            <SlidersHorizontal className="h-4 w-4 text-primary" /> Feature
+            Control
+          </h2>
+          <span className="rounded-full bg-secondary px-2.5 py-0.5 font-mono text-xs font-semibold text-muted-foreground">
+            v{appConfig?.app_version ?? "1.0.0"}
+          </span>
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card/40 p-4">
+          <p className="mb-3 text-xs text-muted-foreground">
+            Toggle modules on or off and broadcast changes to every connected
+            user in real time.
+          </p>
+
+          <div className="space-y-1">
+            {(
+              [
+                { key: "tasks", label: "Tasks module" },
+                { key: "focus", label: "Focus timer & soundscapes" },
+                { key: "insights", label: "Insights & analytics" },
+              ] as { key: keyof AppFeatures; label: string }[]
+            ).map(({ key, label }) => (
+              <Toggle
+                key={key}
+                label={label}
+                checked={!!draft?.[key]}
+                onChange={(v) =>
+                  setDraft((d) => (d ? { ...d, [key]: v } : d))
+                }
+              />
+            ))}
+            <Toggle
+              label="Calendar module (always on)"
+              checked
+              disabled
+              onChange={() => {}}
+            />
+          </div>
+
+          <div className="mt-4 rounded-xl border border-border bg-background/40 p-3">
+            <Toggle
+              label="Promotional banner"
+              icon={Megaphone}
+              checked={!!draft?.promo}
+              onChange={(v) => setDraft((d) => (d ? { ...d, promo: v } : d))}
+            />
+            {draft?.promo && (
+              <input
+                value={draft.promo_text}
+                onChange={(e) =>
+                  setDraft((d) => (d ? { ...d, promo_text: e.target.value } : d))
+                }
+                maxLength={140}
+                placeholder="🎉 New AI breakdowns just landed — try them now!"
+                className="mt-2 w-full rounded-lg border border-input bg-card/60 px-3 py-2 text-sm outline-none focus:border-primary"
+              />
+            )}
+          </div>
+
+          <button
+            type="button"
+            disabled={!dirty || publish.isPending}
+            onClick={() => draft && publish.mutate(draft)}
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-primary-glow py-3 text-sm font-bold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-40"
+          >
+            {publish.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Rocket className="h-4 w-4" />
+            )}
+            {dirty ? "Push update to all users" : "No pending changes"}
+          </button>
+        </div>
+      </section>
+
+
 
       {/* Pending payment approvals */}
       <section className="mb-8">
@@ -431,3 +579,51 @@ function Metric({
     </div>
   );
 }
+
+function Toggle({
+  label,
+  checked,
+  onChange,
+  disabled,
+  icon: Icon,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  disabled?: boolean;
+  icon?: typeof Users;
+}) {
+  return (
+    <label
+      className={cn(
+        "flex cursor-pointer items-center justify-between gap-3 rounded-lg px-2 py-2.5",
+        disabled && "cursor-not-allowed opacity-60",
+      )}
+    >
+      <span className="flex items-center gap-2 text-sm font-medium">
+        {Icon && <Icon className="h-4 w-4 text-primary" />}
+        {label}
+      </span>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-label={label}
+        disabled={disabled}
+        onClick={() => !disabled && onChange(!checked)}
+        className={cn(
+          "relative h-6 w-11 shrink-0 rounded-full transition-colors",
+          checked ? "bg-primary" : "bg-secondary",
+        )}
+      >
+        <span
+          className={cn(
+            "absolute top-0.5 h-5 w-5 rounded-full bg-background shadow transition-transform",
+            checked ? "translate-x-[22px]" : "translate-x-0.5",
+          )}
+        />
+      </button>
+    </label>
+  );
+}
+

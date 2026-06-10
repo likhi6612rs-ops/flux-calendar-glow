@@ -13,6 +13,7 @@ import {
 import { useFlux } from "@/lib/flux-store";
 import { usePremium, tierLabel } from "@/lib/premium";
 import { useAuth } from "@/lib/auth";
+import { useAppConfig } from "@/lib/app-config";
 import { MultiMonthCalendar } from "./MultiMonthCalendar";
 import { ProcrastinationTracker } from "./ProcrastinationTracker";
 import { TaskList } from "./TaskList";
@@ -21,8 +22,8 @@ import { InsightsView } from "./InsightsView";
 import { SettingsPanel } from "./SettingsPanel";
 import { InstallPrompt } from "./InstallPrompt";
 import { UpdateBanner } from "./UpdateBanner";
+import { FeatureUpdateBanner } from "./FeatureUpdateBanner";
 import { PaywallModal } from "./PaywallModal";
-import { TierGate } from "./TierGate";
 import { cn } from "@/lib/utils";
 
 type ModuleId = "calendar" | "tasks" | "focus" | "insights";
@@ -51,14 +52,9 @@ function CenterModule({ id }: { id: ModuleId }) {
     return (
       <div className="space-y-6">
         <ProcrastinationTracker />
-        <TierGate
-          requiredTier="premium"
-          feature="12-Month Calendar"
-          title="12-Month Swipeable Calendar"
-          description="Plan your whole year and snap back to Today instantly."
-        >
-          <MultiMonthCalendar />
-        </TierGate>
+        {/* Current month is free for everyone; navigating to other months
+            triggers the premium upgrade card from inside the calendar. */}
+        <MultiMonthCalendar />
       </div>
     );
   if (id === "tasks") return <TaskList />;
@@ -71,14 +67,25 @@ export function FluxApp() {
   const { user } = useAuth();
   const { tier, hasTier, openPaywall } = usePremium();
   const { procrastination } = useFlux();
+  const { config } = useAppConfig();
 
   const [active, setActive] = useState<ModuleId>("calendar");
   const [rightOpen, setRightOpen] = useState(true);
 
+  // Admin-controlled feature switches decide which tabs are live. Calendar
+  // always stays available so the dashboard is never empty.
+  const navItems = NAV.filter(
+    (item) => item.id === "calendar" || config.features[item.id] !== false,
+  );
+
   const hasDebt = procrastination(3).pending > 0;
+  // Fall back to calendar if the admin disabled the active module.
+  const enabledId: ModuleId = navItems.some((n) => n.id === active)
+    ? active
+    : "calendar";
   // On desktop the focus pane lives on the right, so the center never shows it.
   const centerModule: ModuleId =
-    desktop && active === "focus" ? "calendar" : active;
+    desktop && enabledId === "focus" ? "calendar" : enabledId;
 
   const onNav = (id: ModuleId) => {
     if (desktop && id === "focus") {
@@ -96,6 +103,7 @@ export function FluxApp() {
       : active === id;
 
   const initials = (user?.email ?? "F").slice(0, 1).toUpperCase();
+
 
   return (
     <div className="min-h-screen overflow-x-hidden">
@@ -118,7 +126,7 @@ export function FluxApp() {
             </div>
 
             <nav className="flex flex-1 flex-col gap-1">
-              {NAV.map((item) => (
+              {navItems.map((item) => (
                 <button
                   key={item.id}
                   onClick={() => onNav(item.id)}
@@ -208,6 +216,14 @@ export function FluxApp() {
           )}
 
           <div className="mx-auto max-w-2xl">
+            {config.features.promo && config.features.promo_text && (
+              <div className="mb-5 flex items-center gap-3 rounded-2xl border border-primary/25 bg-gradient-to-r from-primary/15 to-primary-glow/10 p-4">
+                <Sparkles className="h-5 w-5 shrink-0 text-primary-glow" />
+                <p className="text-sm font-semibold text-foreground/90">
+                  {config.features.promo_text}
+                </p>
+              </div>
+            )}
             <AnimatePresence mode="wait">
               <motion.div
                 key={centerModule}
@@ -246,7 +262,7 @@ export function FluxApp() {
       {!desktop && (
         <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-popover/90 px-2 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl">
           <div className="mx-auto flex max-w-md items-stretch justify-around">
-            {NAV.map((item) => {
+            {navItems.map((item) => {
               const on = navActive(item.id);
               return (
                 <button
@@ -283,6 +299,7 @@ export function FluxApp() {
       <PaywallModal />
       <InstallPrompt />
       <UpdateBanner />
+      <FeatureUpdateBanner />
     </div>
   );
 }

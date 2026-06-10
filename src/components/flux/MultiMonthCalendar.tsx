@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { AnimatePresence, motion, type PanInfo } from "motion/react";
-import { Check, ChevronLeft, ChevronRight, CalendarCheck } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, CalendarCheck, Crown } from "lucide-react";
 import {
   buildMonths,
   currentMonthIndex,
@@ -10,6 +10,7 @@ import {
   WEEKDAYS,
 } from "@/lib/flux-date";
 import { useFlux } from "@/lib/flux-store";
+import { usePremium } from "@/lib/premium";
 import { cn } from "@/lib/utils";
 
 export function MultiMonthCalendar() {
@@ -18,11 +19,20 @@ export function MultiMonthCalendar() {
   const [[index, dir], setState] = useState<[number, number]>([todayIdx, 0]);
   const { selectedDate, setSelectedDate, isDayComplete, hasTasks, dayRatio } =
     useFlux();
+  const { hasTier, openPaywall } = usePremium();
+
+  // Free users get the current month fully unlocked, but travelling to any
+  // other month triggers the premium upgrade card.
+  const canTravel = hasTier("premium");
 
   const month = months[index];
 
   const go = (next: number) => {
     if (next < 0 || next >= months.length) return;
+    if (!canTravel && next !== todayIdx) {
+      openPaywall("12-Month Calendar", "premium");
+      return;
+    }
     setState([next, next > index ? 1 : -1]);
   };
 
@@ -58,8 +68,11 @@ export function MultiMonthCalendar() {
           >
             <ChevronRight className="h-4 w-4" />
           </button>
-          <h2 className="ml-2 text-lg font-extrabold tracking-tight">
+          <h2 className="ml-2 flex items-center gap-1.5 text-lg font-extrabold tracking-tight">
             {month.label}
+            {!canTravel && (
+              <Crown className="h-3.5 w-3.5 text-amber-300/80" />
+            )}
           </h2>
         </div>
         <button
@@ -145,8 +158,9 @@ export function MultiMonthCalendar() {
       </div>
 
       <p className="mt-3 text-center text-[11px] text-muted-foreground/60">
-        Swipe or use arrows to travel through {months[0].shortLabel} –{" "}
-        {months[months.length - 1].shortLabel}
+        {canTravel
+          ? `Swipe or use arrows to travel through ${months[0].shortLabel} – ${months[months.length - 1].shortLabel}`
+          : "Unlock Premium to swipe across all 12 months"}
       </p>
     </section>
   );
