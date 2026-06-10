@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { FluxProvider } from "@/lib/flux-store";
 import { PremiumProvider } from "@/lib/premium";
+import { AppConfigProvider } from "@/lib/app-config";
 import { FluxApp } from "@/components/flux/FluxApp";
 import { VerificationGate } from "@/components/flux/VerificationGate";
 
