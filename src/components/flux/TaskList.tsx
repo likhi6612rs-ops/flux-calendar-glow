@@ -1,13 +1,10 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Plus, X, Check, Sparkles, Loader2, Wand2 } from "lucide-react";
-import { useServerFn } from "@tanstack/react-start";
-import { toast } from "sonner";
+import { Plus, X, Check, Sparkles } from "lucide-react";
 import { useFlux, SPAN_OPTIONS, type TaskSpan } from "@/lib/flux-store";
 import { isToday, shortLabel } from "@/lib/flux-date";
 import { usePremium } from "@/lib/premium";
-import { breakDownTask } from "@/lib/ai.functions";
-import { PremiumBadge } from "./PremiumBadge";
+import { GeminiCoach } from "./GeminiCoach";
 import {
   Select,
   SelectContent,
@@ -28,7 +25,6 @@ export function TaskList() {
     deleteTask,
   } = useFlux();
   const { guard } = usePremium();
-  const runBreakdown = useServerFn(breakDownTask);
 
   const [value, setValue] = useState("");
   const [span, setSpan] = useState("1");
@@ -36,9 +32,7 @@ export function TaskList() {
   const [editValue, setEditValue] = useState("");
   const editRef = useRef<HTMLInputElement>(null);
 
-  const [breakdownFor, setBreakdownFor] = useState<TaskSpan | null>(null);
-  const [subtasks, setSubtasks] = useState<string[] | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [coachFor, setCoachFor] = useState<TaskSpan | null>(null);
 
   const tasks = tasksForDate(selectedDate);
   const completed = tasks.filter((t) => isCompleted(t.id, selectedDate)).length;
@@ -65,34 +59,9 @@ export function TaskList() {
     setEditingId(null);
   };
 
-  const openBreakdown = (task: TaskSpan) => {
-    guard("AI Task Breakdown", "ultra", async () => {
-      setBreakdownFor(task);
-      setSubtasks(null);
-      setLoading(true);
-      try {
-        const res = await runBreakdown({ data: { task: task.text } });
-        setSubtasks(res.subtasks);
-      } catch (err) {
-        const msg = String(err);
-        if (msg.includes("429"))
-          toast.error("AI is busy — try again in a moment.");
-        else if (msg.includes("402"))
-          toast.error("AI credits exhausted. Add credits to continue.");
-        else toast.error("Couldn't break down this task.");
-        setBreakdownFor(null);
-      } finally {
-        setLoading(false);
-      }
-    });
-  };
-
-  const addAll = async () => {
-    if (!subtasks) return;
-    for (const s of subtasks) await addTask(s, 1);
-    toast.success(`Added ${subtasks.length} steps`);
-    setBreakdownFor(null);
-    setSubtasks(null);
+  // ✨ Ask Gemini — strictly locked behind the Premium Ultra Pro tier.
+  const askGemini = (task: TaskSpan) => {
+    guard("AI Task Coach", "ultra", () => setCoachFor(task));
   };
 
   return (
@@ -219,9 +188,9 @@ export function TaskList() {
 
                 <button
                   type="button"
-                  onClick={() => openBreakdown(task)}
-                  aria-label="Break it down with AI"
-                  title="✨ Break it down (Premium)"
+                  onClick={() => askGemini(task)}
+                  aria-label="Ask Gemini to break it down"
+                  title="✨ Ask Gemini (Ultra Pro)"
                   className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-primary-glow/70 transition-colors hover:bg-primary/15 hover:text-primary-glow"
                 >
                   <Sparkles className="h-4 w-4" />
@@ -249,79 +218,11 @@ export function TaskList() {
       )}
 
       <AnimatePresence>
-        {breakdownFor && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setBreakdownFor(null)}
-            className="fixed inset-0 z-[60] flex items-end justify-center bg-background/70 p-4 backdrop-blur-md sm:items-center"
-          >
-            <motion.div
-              initial={{ scale: 0.92, y: 30, opacity: 0 }}
-              animate={{ scale: 1, y: 0, opacity: 1 }}
-              exit={{ scale: 0.92, y: 30, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 280, damping: 26 }}
-              onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-md rounded-3xl border border-white/10 bg-card/70 p-6 shadow-glow backdrop-blur-2xl"
-              style={{ ["--glow-color" as string]: "oklch(0.74 0.12 300 / 35%)" }}
-            >
-              <div className="mb-3 flex items-start justify-between gap-3">
-                <div>
-                  <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-primary-glow">
-                    <Wand2 className="h-3.5 w-3.5" /> AI Breakdown
-                    <PremiumBadge />
-                  </p>
-                  <h3 className="mt-1 text-base font-bold leading-tight">
-                    {breakdownFor.text}
-                  </h3>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setBreakdownFor(null)}
-                  aria-label="Close"
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-
-              {loading && (
-                <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Splitting into
-                  steps…
-                </div>
-              )}
-
-              {subtasks && (
-                <>
-                  <ol className="space-y-2">
-                    {subtasks.map((s, i) => (
-                      <motion.li
-                        key={i}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: i * 0.05 }}
-                        className="flex items-center gap-3 rounded-xl border border-border bg-background/40 px-3 py-2.5 text-sm"
-                      >
-                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/20 text-[11px] font-bold text-primary-glow">
-                          {i + 1}
-                        </span>
-                        {s}
-                      </motion.li>
-                    ))}
-                  </ol>
-                  <button
-                    type="button"
-                    onClick={addAll}
-                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-primary to-primary-glow py-3 text-sm font-bold text-primary-foreground transition-transform active:scale-[0.98]"
-                  >
-                    <Plus className="h-4 w-4" strokeWidth={3} /> Add all as tasks
-                  </button>
-                </>
-              )}
-            </motion.div>
-          </motion.div>
+        {coachFor && (
+          <GeminiCoach
+            task={coachFor.text}
+            onClose={() => setCoachFor(null)}
+          />
         )}
       </AnimatePresence>
     </section>

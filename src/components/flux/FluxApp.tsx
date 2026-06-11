@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
   CalendarDays,
-  ListChecks,
   Timer,
   LineChart,
   Crown,
@@ -26,14 +25,14 @@ import { FeatureUpdateBanner } from "./FeatureUpdateBanner";
 import { PaywallModal } from "./PaywallModal";
 import { cn } from "@/lib/utils";
 
-type ModuleId = "calendar" | "tasks" | "focus" | "insights";
+type ModuleId = "calendar" | "focus" | "insights";
 
 const NAV: { id: ModuleId; label: string; icon: typeof CalendarDays }[] = [
   { id: "calendar", label: "Calendar", icon: CalendarDays },
-  { id: "tasks", label: "Tasks", icon: ListChecks },
   { id: "focus", label: "Focus", icon: Timer },
   { id: "insights", label: "Insights", icon: LineChart },
 ];
+
 
 function useIsDesktop() {
   const [desktop, setDesktop] = useState(false);
@@ -48,6 +47,7 @@ function useIsDesktop() {
 }
 
 function CenterModule({ id }: { id: ModuleId }) {
+  const { config } = useAppConfig();
   if (id === "calendar")
     return (
       <div className="space-y-6">
@@ -55,12 +55,19 @@ function CenterModule({ id }: { id: ModuleId }) {
         {/* Current month is free for everyone; navigating to other months
             triggers the premium upgrade card from inside the calendar. */}
         <MultiMonthCalendar />
+        {/* The active day's to-do list lives directly below the calendar so
+            picking a date instantly filters the tasks shown here. */}
+        {config.features.tasks !== false && (
+          <div className="border-t border-white/5 pt-6">
+            <TaskList />
+          </div>
+        )}
       </div>
     );
-  if (id === "tasks") return <TaskList />;
   if (id === "focus") return <FocusPane />;
   return <InsightsView />;
 }
+
 
 export function FluxApp() {
   const desktop = useIsDesktop();
