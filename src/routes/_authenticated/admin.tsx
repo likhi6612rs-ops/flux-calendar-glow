@@ -243,6 +243,28 @@ function AdminPage() {
     onError: () => toast.error("Couldn't update this request. Try again."),
   });
 
+  /* ----- Direct access-tier grants (no UPI payment required) ----- */
+  const grant = useMutation({
+    mutationFn: async ({ userId, tier }: { userId: string; tier: Tier }) => {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ tier })
+        .eq("id", userId);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      toast.success(
+        vars.tier === "free"
+          ? "Revoked to Free."
+          : `Granted ${tierLabel(vars.tier)} access.`,
+      );
+      queryClient.invalidateQueries({ queryKey: ["admin", "profiles"] });
+    },
+    onError: () => toast.error("Couldn't update this user's access tier."),
+  });
+
+
+
   const roleMap = useMemo(() => {
     const m = new Map<string, string>();
     roles.forEach((r) => {
