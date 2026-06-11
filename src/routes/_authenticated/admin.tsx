@@ -477,7 +477,7 @@ function AdminPage() {
       </section>
 
 
-      {/* User directory */}
+      {/* User directory + direct access grants */}
       <section className="mb-8">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
@@ -489,64 +489,92 @@ function AdminPage() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by email…"
-            aria-label="Search users by email"
+            placeholder="Search by name, email or mobile…"
+            aria-label="Search users"
             className="w-full rounded-xl border border-input bg-card/60 py-2.5 pl-9 pr-4 text-sm outline-none focus:border-primary"
           />
         </div>
-        <div className="overflow-hidden rounded-xl border border-border">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-card/60 text-xs uppercase text-muted-foreground">
-              <tr>
-                <th className="px-3 py-2.5 font-semibold">Email</th>
-                <th className="px-3 py-2.5 font-semibold">Role</th>
-                <th className="hidden px-3 py-2.5 font-semibold sm:table-cell">
-                  Joined
-                </th>
-                <th className="px-3 py-2.5 font-semibold">Last active</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((p) => (
-                <tr key={p.id} className="border-t border-border">
-                  <td className="max-w-[160px] truncate px-3 py-2.5">
-                    {p.email}
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <span
-                      className={
-                        roleMap.get(p.id) === "admin"
-                          ? "rounded-full bg-primary/15 px-2 py-0.5 text-xs font-semibold text-primary-glow"
-                          : "rounded-full bg-secondary px-2 py-0.5 text-xs font-semibold text-muted-foreground"
-                      }
-                    >
-                      {roleMap.get(p.id) ?? "user"}
+
+        <div className="space-y-2.5">
+          {filtered.map((p) => {
+            const role = roleMap.get(p.id) ?? "user";
+            const busy = grant.isPending && grant.variables?.userId === p.id;
+            return (
+              <div
+                key={p.id}
+                className="rounded-2xl border border-border bg-card/40 p-4"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="flex items-center gap-2 truncate text-sm font-bold">
+                      {p.full_name || "Unnamed user"}
+                      {role === "admin" && (
+                        <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary-glow">
+                          admin
+                        </span>
+                      )}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {p.email}
+                    </p>
+                    {p.mobile && (
+                      <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                        <Phone className="h-3 w-3" /> {p.mobile}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="rounded-full bg-primary/15 px-2.5 py-1 text-xs font-bold text-primary-glow">
+                      {tierLabel(p.tier)}
                     </span>
-                  </td>
-                  <td className="hidden px-3 py-2.5 text-muted-foreground sm:table-cell">
-                    {format(new Date(p.created_at), "MMM d, yyyy")}
-                  </td>
-                  <td className="px-3 py-2.5 text-muted-foreground">
-                    <span className="inline-flex items-center gap-1">
+                    <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
                       <Activity className="h-3 w-3 text-success" />
                       {format(new Date(p.updated_at), "MMM d")}
                     </span>
-                  </td>
-                </tr>
-              ))}
-              {filtered.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={4}
-                    className="px-3 py-6 text-center text-muted-foreground"
-                  >
-                    No users found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                  </div>
+                </div>
+
+                <div className="mt-3 flex items-center gap-2">
+                  <span className="text-xs font-medium text-muted-foreground">
+                    Modify Access Tier
+                  </span>
+                  <div className="relative ml-auto">
+                    {busy && (
+                      <Loader2 className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-primary" />
+                    )}
+                    <select
+                      aria-label={`Modify access tier for ${p.email}`}
+                      value=""
+                      disabled={busy || role === "admin"}
+                      onChange={(e) => {
+                        const tier = e.target.value as Tier;
+                        if (tier) grant.mutate({ userId: p.id, tier });
+                      }}
+                      className={cn(
+                        "cursor-pointer rounded-lg border border-input bg-background/60 py-2 pr-3 text-xs font-semibold outline-none focus:border-primary disabled:opacity-50",
+                        busy ? "pl-8" : "pl-3",
+                      )}
+                    >
+                      <option value="" disabled>
+                        Set Status 👇
+                      </option>
+                      <option value="free">Revoke to Free</option>
+                      <option value="premium">Grant Free Premium</option>
+                      <option value="pro">Grant Free Premium Pro</option>
+                      <option value="ultra">Grant Free Premium Ultra Pro 👑</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          {filtered.length === 0 && (
+            <p className="rounded-xl border border-border bg-card/40 p-6 text-center text-sm text-muted-foreground">
+              No users found.
+            </p>
+          )}
         </div>
+
       </section>
 
       {/* Feedback stream */}
