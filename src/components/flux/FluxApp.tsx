@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
   CalendarDays,
-  ListChecks,
   Timer,
   LineChart,
   Crown,
@@ -26,14 +25,14 @@ import { FeatureUpdateBanner } from "./FeatureUpdateBanner";
 import { PaywallModal } from "./PaywallModal";
 import { cn } from "@/lib/utils";
 
-type ModuleId = "calendar" | "tasks" | "focus" | "insights";
+type ModuleId = "calendar" | "focus" | "insights";
 
 const NAV: { id: ModuleId; label: string; icon: typeof CalendarDays }[] = [
   { id: "calendar", label: "Calendar", icon: CalendarDays },
-  { id: "tasks", label: "Tasks", icon: ListChecks },
   { id: "focus", label: "Focus", icon: Timer },
   { id: "insights", label: "Insights", icon: LineChart },
 ];
+
 
 function useIsDesktop() {
   const [desktop, setDesktop] = useState(false);
