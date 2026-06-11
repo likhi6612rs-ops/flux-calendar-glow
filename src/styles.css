@@ -215,3 +215,13 @@
 @utility glow-soft {
   box-shadow: 0 0 24px -4px var(--glow-color);
 }
+
+/* Global override: hide external framework watermark / attribution wrappers */
+div[class*="lovable"],
+iframe[src*="lovable"],
+.fixed.bottom-4.right-4.z-50 {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
