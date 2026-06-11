@@ -274,13 +274,16 @@ function AdminPage() {
     return m;
   }, [roles]);
 
-  const filtered = useMemo(
-    () =>
-      profiles.filter((p) =>
-        p.email.toLowerCase().includes(search.trim().toLowerCase()),
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return profiles;
+    return profiles.filter((p) =>
+      [p.email, p.full_name ?? "", p.mobile ?? ""].some((v) =>
+        v.toLowerCase().includes(q),
       ),
-    [profiles, search],
-  );
+    );
+  }, [profiles, search]);
+
 
   if (!isAdmin) return null;
 
