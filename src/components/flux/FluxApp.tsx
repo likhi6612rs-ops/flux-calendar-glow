@@ -47,6 +47,7 @@ function useIsDesktop() {
 }
 
 function CenterModule({ id }: { id: ModuleId }) {
+  const { config } = useAppConfig();
   if (id === "calendar")
     return (
       <div className="space-y-6">
@@ -54,12 +55,19 @@ function CenterModule({ id }: { id: ModuleId }) {
         {/* Current month is free for everyone; navigating to other months
             triggers the premium upgrade card from inside the calendar. */}
         <MultiMonthCalendar />
+        {/* The active day's to-do list lives directly below the calendar so
+            picking a date instantly filters the tasks shown here. */}
+        {config.features.tasks !== false && (
+          <div className="border-t border-white/5 pt-6">
+            <TaskList />
+          </div>
+        )}
       </div>
     );
-  if (id === "tasks") return <TaskList />;
   if (id === "focus") return <FocusPane />;
   return <InsightsView />;
 }
+
 
 export function FluxApp() {
   const desktop = useIsDesktop();
