@@ -15,30 +15,7 @@ export const Route = createFileRoute("/_authenticated/")({
     links: [
       { rel: "canonical", href: "https://flux-calendar-glow.lovable.app/" },
     ],
-    scripts: [
-      {
-        type: "application/ld+json",
-        children: JSON.stringify({
-          "@context": "https://schema.org",
-          "@graph": [
-            {
-              "@type": "Organization",
-              name: "Flux",
-              url: "https://flux-calendar-glow.lovable.app/",
-              logo: "https://flux-calendar-glow.lovable.app/icon-512.png",
-            },
-            {
-              "@type": "WebSite",
-              name: "Flux",
-              url: "https://flux-calendar-glow.lovable.app/",
-              description:
-                "Flux is a minimalist PWA that visualizes daily consistency and gamifies discipline.",
-            },
-          ],
-        }),
-      },
-    ],
-  }),
+     }),
   component: Index,
 });
 
