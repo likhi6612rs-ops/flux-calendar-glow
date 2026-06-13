@@ -9,7 +9,7 @@ export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
     meta: [
       { title: "Flux — Dynamic Personal Nervous System" },
-      { name: "google-site-verification", content: "u4EAHx0C0qIDXqEM0kw-ySnukNbocmAJpTirY_K0nnc" },
+      { name: "google-site-verification", content: "oVfAg5Y-ZTcYeHUU5LzlaU-pzH7zfSw6JcK2dhZqpmA" },
       { property: "og:url", content: "https://flux-calendar-glow.lovable.app/" },
     ],
     links: [
