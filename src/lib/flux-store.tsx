@@ -7,10 +7,15 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { differenceInCalendarDays, parseISO } from "date-fns";
+import {
+  differenceInCalendarDays,
+  parseISO,
+  startOfDay,
+  subDays,
+} from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./auth";
-import { todayKey, lastNDayKeys, isToday } from "./flux-date";
+import { todayKey, lastNDayKeys, isToday, isPast, dateKey } from "./flux-date";
 
 export interface ProcrastinationSummary {
   /** incomplete task-instances across the window (past days only) */
