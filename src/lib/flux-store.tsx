@@ -31,6 +31,15 @@ export interface ProcrastinationSummary {
   windowDays: number;
 }
 
+export interface StreakInfo {
+  /** consecutive fully-completed days ending today (or yesterday, grace) */
+  current: number;
+  /** longest run of fully-completed days over the past year */
+  best: number;
+  /** whether today is already fully completed */
+  todayDone: boolean;
+}
+
 export interface TaskSpan {
   id: string;
   text: string;
