@@ -104,16 +104,15 @@ function buildMonth(year: number, monthIndex: number): CalendarMonth {
   };
 }
 
-/** Every month from the current month through December of next year. */
+/** The past 12 months through December of next year, so users can travel
+ * backward to review incomplete history as well as forward to plan. */
 export function buildMonths(reference = new Date()): CalendarMonth[] {
-  const startYear = reference.getFullYear();
-  const startMonth = reference.getMonth();
   const months: CalendarMonth[] = [];
-  for (let y = startYear; y <= startYear + 1; y++) {
-    const from = y === startYear ? startMonth : 0;
-    for (let m = from; m <= 11; m++) {
-      months.push(buildMonth(y, m));
-    }
+  const cursor = new Date(reference.getFullYear(), reference.getMonth() - 12, 1);
+  const end = new Date(reference.getFullYear() + 1, 11, 1);
+  while (cursor <= end) {
+    months.push(buildMonth(cursor.getFullYear(), cursor.getMonth()));
+    cursor.setMonth(cursor.getMonth() + 1);
   }
   return months;
 }
