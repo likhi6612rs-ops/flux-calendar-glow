@@ -93,6 +93,8 @@ interface FluxContextValue {
   isDayComplete: (key: string) => boolean;
   dayRatio: (key: string) => number;
   hasTasks: (key: string) => boolean;
+  isOverdue: (key: string) => boolean;
+  streak: () => StreakInfo;
   procrastination: (windowDays: number) => ProcrastinationSummary;
   addTask: (text: string, spanDays: number) => Promise<void>;
   toggleTask: (taskId: string, date: string) => Promise<void>;
