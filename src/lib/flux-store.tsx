@@ -167,6 +167,47 @@ export function FluxProvider({ children }: { children: ReactNode }) {
     [tasksForDate],
   );
 
+  // A past day that still carries at least one unfinished task.
+  const isOverdue = useCallback(
+    (key: string) =>
+      isPast(key) &&
+      !isToday(key) &&
+      tasksForDate(key).length > 0 &&
+      !tasksForDate(key).every((t) => completions.has(ckey(t.id, key))),
+    [tasksForDate, completions],
+  );
+
+  // Consecutive fully-completed days ending today (with a one-day grace so a
+  // still-open today doesn't visually break the streak yet).
+  const streak = useCallback((): StreakInfo => {
+    const dayDone = (key: string) => {
+      const list = tasksForDate(key);
+      return list.length > 0 && list.every((t) => completions.has(ckey(t.id, key)));
+    };
+    const base = startOfDay(new Date());
+
+    let current = 0;
+    let cursor = dayDone(dateKey(base)) ? base : subDays(base, 1);
+    while (dayDone(dateKey(cursor))) {
+      current += 1;
+      cursor = subDays(cursor, 1);
+    }
+
+    let best = 0;
+    let run = 0;
+    for (let i = 365; i >= 0; i--) {
+      if (dayDone(dateKey(subDays(base, i)))) {
+        run += 1;
+        best = Math.max(best, run);
+      } else {
+        run = 0;
+      }
+    }
+
+    return { current, best, todayDone: dayDone(dateKey(base)) };
+  }, [tasksForDate, completions]);
+
+
   const procrastination = useCallback(
     (windowDays: number): ProcrastinationSummary => {
       const keys = lastNDayKeys(windowDays).filter((k) => !isToday(k));
