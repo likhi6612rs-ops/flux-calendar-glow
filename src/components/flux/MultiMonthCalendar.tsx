@@ -17,7 +17,7 @@ export function MultiMonthCalendar() {
   const months = useMemo(() => buildMonths(), []);
   const todayIdx = useMemo(() => currentMonthIndex(months), [months]);
   const [[index, dir], setState] = useState<[number, number]>([todayIdx, 0]);
-  const { selectedDate, setSelectedDate, isDayComplete, hasTasks, dayRatio } =
+  const { selectedDate, setSelectedDate, isDayComplete, hasTasks, dayRatio, isOverdue } =
     useFlux();
   const { hasTier, openPaywall } = usePremium();
 
