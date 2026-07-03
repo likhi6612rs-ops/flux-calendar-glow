@@ -15,6 +15,8 @@ import { useAuth } from "@/lib/auth";
 import { useAppConfig } from "@/lib/app-config";
 import { MultiMonthCalendar } from "./MultiMonthCalendar";
 import { ProcrastinationTracker } from "./ProcrastinationTracker";
+import { YearProgress } from "./YearProgress";
+import { StreakCounter } from "./StreakCounter";
 import { TaskList } from "./TaskList";
 import { FocusPane } from "./FocusPane";
 import { InsightsView } from "./InsightsView";
@@ -52,6 +54,11 @@ function CenterModule({ id }: { id: ModuleId }) {
     return (
       <div className="space-y-6">
         <ProcrastinationTracker />
+        {/* Annual progress bar sits directly beneath the procrastination
+            alert to convey the scale of the year. */}
+        <YearProgress />
+        {/* Consistency streak to reward daily follow-through. */}
+        <StreakCounter />
         {/* Current month is free for everyone; navigating to other months
             triggers the premium upgrade card from inside the calendar. */}
         <MultiMonthCalendar />

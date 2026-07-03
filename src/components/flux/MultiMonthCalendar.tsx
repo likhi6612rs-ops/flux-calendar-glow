@@ -17,7 +17,7 @@ export function MultiMonthCalendar() {
   const months = useMemo(() => buildMonths(), []);
   const todayIdx = useMemo(() => currentMonthIndex(months), [months]);
   const [[index, dir], setState] = useState<[number, number]>([todayIdx, 0]);
-  const { selectedDate, setSelectedDate, isDayComplete, hasTasks, dayRatio } =
+  const { selectedDate, setSelectedDate, isDayComplete, hasTasks, dayRatio, isOverdue } =
     useFlux();
   const { hasTier, openPaywall } = usePremium();
 
@@ -116,6 +116,7 @@ export function MultiMonthCalendar() {
             {month.dayKeys.map((key) => {
               const complete = isDayComplete(key);
               const partial = !complete && hasTasks(key) && dayRatio(key) > 0;
+              const overdue = !complete && isOverdue(key);
               const selected = key === selectedDate;
               const today = isToday(key);
               return (
@@ -125,12 +126,14 @@ export function MultiMonthCalendar() {
                   onClick={() => setSelectedDate(key)}
                   whileTap={{ scale: 0.9 }}
                   aria-pressed={selected}
-                  aria-label={`Day ${dayNumber(key)}${complete ? ", completed" : ""}`}
+                  aria-label={`Day ${dayNumber(key)}${complete ? ", completed" : overdue ? ", overdue" : ""}`}
                   className={cn(
                     "relative flex aspect-square items-center justify-center rounded-xl border text-sm font-semibold transition-colors duration-300",
                     complete
                       ? "border-transparent bg-success text-success-foreground glow-soft"
-                      : "border-border bg-card/40 text-muted-foreground hover:border-primary/60 hover:text-foreground",
+                      : overdue
+                        ? "border-destructive/50 bg-destructive/10 text-destructive hover:border-destructive"
+                        : "border-border bg-card/40 text-muted-foreground hover:border-primary/60 hover:text-foreground",
                     selected && !complete && "border-primary text-foreground",
                     today && !complete && "ring-1 ring-primary/60",
                   )}
@@ -149,6 +152,12 @@ export function MultiMonthCalendar() {
                   )}
                   {today && (
                     <span className="absolute bottom-1 h-1 w-1 rounded-full bg-primary" />
+                  )}
+                  {overdue && (
+                    <span
+                      className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-destructive"
+                      aria-hidden
+                    />
                   )}
                 </motion.button>
               );
