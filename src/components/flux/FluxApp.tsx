@@ -15,6 +15,8 @@ import { useAuth } from "@/lib/auth";
 import { useAppConfig } from "@/lib/app-config";
 import { MultiMonthCalendar } from "./MultiMonthCalendar";
 import { ProcrastinationTracker } from "./ProcrastinationTracker";
+import { YearProgress } from "./YearProgress";
+import { StreakCounter } from "./StreakCounter";
 import { TaskList } from "./TaskList";
 import { FocusPane } from "./FocusPane";
 import { InsightsView } from "./InsightsView";
