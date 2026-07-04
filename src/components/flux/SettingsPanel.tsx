@@ -129,6 +129,11 @@ export function SettingsPanel() {
             </button>
           </div>
 
+          {/* Team & Connections */}
+          <TeamConnections />
+
+
+
 
 
           {/* Theme */}
