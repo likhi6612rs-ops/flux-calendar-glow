@@ -35,6 +35,27 @@ export type Database = {
         }
         Relationships: []
       }
+      connections: {
+        Row: {
+          connected_user_id: string
+          created_at: string
+          id: string
+          requester_id: string
+        }
+        Insert: {
+          connected_user_id: string
+          created_at?: string
+          id?: string
+          requester_id: string
+        }
+        Update: {
+          connected_user_id?: string
+          created_at?: string
+          id?: string
+          requester_id?: string
+        }
+        Relationships: []
+      }
       feedback: {
         Row: {
           created_at: string
@@ -66,7 +87,9 @@ export type Database = {
           email_verified: boolean
           full_name: string | null
           id: string
+          invite_code: string | null
           mobile: string | null
+          privacy_show_tasks: boolean
           theme: string
           tier: string
           timer_completion_count: number
@@ -78,7 +101,9 @@ export type Database = {
           email_verified?: boolean
           full_name?: string | null
           id: string
+          invite_code?: string | null
           mobile?: string | null
+          privacy_show_tasks?: boolean
           theme?: string
           tier?: string
           timer_completion_count?: number
@@ -90,7 +115,9 @@ export type Database = {
           email_verified?: boolean
           full_name?: string | null
           id?: string
+          invite_code?: string | null
           mobile?: string | null
+          privacy_show_tasks?: boolean
           theme?: string
           tier?: string
           timer_completion_count?: number
@@ -222,6 +249,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_invite_code: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -229,6 +257,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      join_by_invite_code: { Args: { _code: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "user"

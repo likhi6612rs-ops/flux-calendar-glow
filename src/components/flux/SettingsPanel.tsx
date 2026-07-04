@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { TeamConnections } from "./TeamConnections";
 import { Link } from "@tanstack/react-router";
 import {
   Settings,
@@ -128,6 +129,11 @@ export function SettingsPanel() {
               <Sparkles className="h-4 w-4" /> {isPaid ? "Upgrade plan" : "Go Premium"}
             </button>
           </div>
+
+          {/* Team & Connections */}
+          <TeamConnections />
+
+
 
 
 
