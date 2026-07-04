@@ -21,7 +21,7 @@ import { TaskList } from "./TaskList";
 import { FocusPane } from "./FocusPane";
 import { InsightsView } from "./InsightsView";
 import { SettingsPanel } from "./SettingsPanel";
-import { InstallPrompt } from "./InstallPrompt";
+import { PWAInstallPrompt } from "./PWAInstallPrompt";
 import { UpdateBanner } from "./UpdateBanner";
 import { FeatureUpdateBanner } from "./FeatureUpdateBanner";
 import { PaywallModal } from "./PaywallModal";
