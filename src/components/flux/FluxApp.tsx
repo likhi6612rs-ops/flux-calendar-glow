@@ -311,7 +311,7 @@ export function FluxApp() {
       )}
 
       <PaywallModal />
-      <InstallPrompt />
+      <PWAInstallPrompt />
       <UpdateBanner />
       <FeatureUpdateBanner />
     </div>
