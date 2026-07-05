@@ -68,6 +68,7 @@ function AuthPage() {
   const [mobile, setMobile] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [sentTo, setSentTo] = useState("");
 
   useEffect(() => {
     if (!loading && session) navigate({ to: "/", replace: true });
