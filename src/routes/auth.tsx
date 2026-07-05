@@ -143,6 +143,40 @@ function AuthPage() {
     navigate({ to: "/", replace: true });
   };
 
+  if (sentTo) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-5 py-10">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-sm text-center"
+        >
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary-glow shadow-glow">
+            <MailCheck className="h-7 w-7 text-primary-foreground" />
+          </div>
+          <h1 className="text-2xl font-extrabold tracking-tight">
+            Check your email
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            We sent a verification link to{" "}
+            <span className="font-semibold text-foreground">{sentTo}</span>.
+            Click it to activate your account — you'll be taken straight to your
+            dashboard.
+          </p>
+          <button
+            onClick={() => {
+              setSentTo("");
+              setMode("signin");
+            }}
+            className="mt-6 w-full rounded-xl border border-border bg-card/60 py-3 text-sm font-semibold transition-colors hover:border-primary/60"
+          >
+            Back to sign in
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-5 py-10">
       <motion.div
