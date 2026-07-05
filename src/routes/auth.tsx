@@ -91,7 +91,7 @@ function AuthPage() {
           setBusy(false);
           return;
         }
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email: parsed.data.email,
           password: parsed.data.password,
           options: {
@@ -103,6 +103,12 @@ function AuthPage() {
           },
         });
         if (error) throw error;
+        // No session means the backend requires email confirmation first.
+        if (!data.session) {
+          setSentTo(parsed.data.email);
+          setBusy(false);
+          return;
+        }
       } else {
         const parsed = signinSchema.safeParse({ email, password });
         if (!parsed.success) {
