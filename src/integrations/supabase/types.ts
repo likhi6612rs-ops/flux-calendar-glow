@@ -82,7 +82,9 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
           created_at: string
+          display_name: string | null
           email: string
           email_verified: boolean
           full_name: string | null
@@ -96,7 +98,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string
+          display_name?: string | null
           email: string
           email_verified?: boolean
           full_name?: string | null
@@ -110,7 +114,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string
+          display_name?: string | null
           email?: string
           email_verified?: boolean
           full_name?: string | null
@@ -193,6 +199,38 @@ export type Database = {
           },
         ]
       }
+      task_permissions: {
+        Row: {
+          connector_id: string
+          created_at: string
+          id: string
+          owner_id: string
+          task_id: string
+        }
+        Insert: {
+          connector_id: string
+          created_at?: string
+          id?: string
+          owner_id: string
+          task_id: string
+        }
+        Update: {
+          connector_id?: string
+          created_at?: string
+          id?: string
+          owner_id?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_permissions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           created_at: string
@@ -258,6 +296,10 @@ export type Database = {
         Returns: boolean
       }
       join_by_invite_code: { Args: { _code: string }; Returns: string }
+      task_shared_with: {
+        Args: { _task_id: string; _viewer: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "user"
