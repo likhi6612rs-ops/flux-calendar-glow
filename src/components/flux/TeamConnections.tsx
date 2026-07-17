@@ -1,38 +1,63 @@
 import { useEffect, useState } from "react";
-import { Users, Copy, Check, UserPlus, Eye, EyeOff, Loader2 } from "lucide-react";
+import {
+  Users,
+  Copy,
+  Check,
+  UserPlus,
+  Eye,
+  EyeOff,
+  Loader2,
+  Settings2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import { Avatar } from "./Avatar";
+import { ShareAccessModal } from "./ShareAccessModal";
+import type { ProfileLite } from "@/lib/flux-store";
 
 export function TeamConnections() {
   const { user } = useAuth();
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [showTasks, setShowTasks] = useState(true);
-  const [connectionCount, setConnectionCount] = useState<number | null>(null);
+  const [connections, setConnections] = useState<ProfileLite[]>([]);
   const [copied, setCopied] = useState(false);
   const [joinCode, setJoinCode] = useState("");
   const [joining, setJoining] = useState(false);
   const [savingPrivacy, setSavingPrivacy] = useState(false);
+  const [configuring, setConfiguring] = useState<ProfileLite | null>(null);
 
   const load = async () => {
     if (!user) return;
-    const [{ data: profile }, { count }] = await Promise.all([
-      supabase
-        .from("profiles")
-        .select("invite_code, privacy_show_tasks")
-        .eq("id", user.id)
-        .maybeSingle(),
-      supabase
-        .from("connections")
-        .select("id", { count: "exact", head: true })
-        .or(`requester_id.eq.${user.id},connected_user_id.eq.${user.id}`),
-    ]);
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("invite_code, privacy_show_tasks")
+      .eq("id", user.id)
+      .maybeSingle();
     if (profile) {
       setInviteCode(profile.invite_code);
       setShowTasks(profile.privacy_show_tasks);
     }
-    setConnectionCount(count ?? 0);
+
+    const { data: rows } = await supabase
+      .from("connections")
+      .select("requester_id, connected_user_id")
+      .or(`requester_id.eq.${user.id},connected_user_id.eq.${user.id}`);
+    const otherIds = (rows ?? [])
+      .map((r) =>
+        r.requester_id === user.id ? r.connected_user_id : r.requester_id,
+      )
+      .filter((id, i, a) => a.indexOf(id) === i);
+    if (otherIds.length === 0) {
+      setConnections([]);
+      return;
+    }
+    const { data: profs } = await supabase
+      .from("profiles")
+      .select("id, display_name, full_name, email, avatar_url")
+      .in("id", otherIds);
+    setConnections((profs ?? []) as ProfileLite[]);
   };
 
   useEffect(() => {
@@ -88,11 +113,9 @@ export function TeamConnections() {
         <span className="flex items-center gap-1.5">
           <Users className="h-4 w-4" /> Team &amp; Connections
         </span>
-        {connectionCount !== null && (
-          <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[11px]">
-            {connectionCount} connected
-          </span>
-        )}
+        <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[11px]">
+          {connections.length} connected
+        </span>
       </p>
 
       {/* Invite code */}
@@ -152,6 +175,46 @@ export function TeamConnections() {
         </div>
       </div>
 
+      {/* Connection list */}
+      {connections.length > 0 && (
+        <div className="mt-4">
+          <p className="mb-1.5 text-xs text-muted-foreground">Your team</p>
+          <ul className="space-y-1.5">
+            {connections.map((c) => (
+              <li
+                key={c.id}
+                className="flex items-center gap-2 rounded-lg border border-border bg-background/40 px-2.5 py-2"
+              >
+                <Avatar
+                  name={c.display_name || c.full_name}
+                  email={c.email}
+                  url={null}
+                  size="sm"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold">
+                    {c.display_name || c.full_name || c.email}
+                  </p>
+                  {(c.display_name || c.full_name) && (
+                    <p className="truncate text-[11px] text-muted-foreground">
+                      {c.email}
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setConfiguring(c)}
+                  className="flex items-center gap-1 rounded-md border border-primary/40 bg-primary/10 px-2 py-1 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/20"
+                  aria-label={`Configure access for ${c.display_name || c.email}`}
+                >
+                  <Settings2 className="h-3 w-3" /> Access
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Privacy toggle */}
       <button
         onClick={togglePrivacy}
@@ -175,8 +238,8 @@ export function TeamConnections() {
             </span>
             <span className="block text-xs text-muted-foreground">
               {showTasks
-                ? "Connected users can see your tasks"
-                : "Your tasks are private"}
+                ? "Use Access above to pick which tasks each teammate sees"
+                : "Sharing paused — no one can see your tasks"}
             </span>
           </span>
         </span>
@@ -194,6 +257,13 @@ export function TeamConnections() {
           />
         </span>
       </button>
+
+      {configuring && (
+        <ShareAccessModal
+          connector={configuring}
+          onClose={() => setConfiguring(null)}
+        />
+      )}
     </div>
   );
 }
