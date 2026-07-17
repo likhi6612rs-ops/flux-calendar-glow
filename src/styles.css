@@ -56,7 +56,7 @@
 /* ---------- Charcoal (default) — deep smooth charcoal #121214 ---------- */
 :root,
 [data-theme="charcoal"] {
-  --radius: 0.9rem;
+  --radius: 1rem;
   color-scheme: dark;
 
   --background: oklch(0.18 0.006 290);
