@@ -56,7 +56,7 @@
 /* ---------- Charcoal (default) — deep smooth charcoal #121214 ---------- */
 :root,
 [data-theme="charcoal"] {
-  --radius: 0.9rem;
+  --radius: 1rem;
   color-scheme: dark;
 
   --background: oklch(0.18 0.006 290);
@@ -101,7 +101,7 @@
 
 /* ---------- True Dark — pure black + neon lavender ---------- */
 [data-theme="true-dark"] {
-  --radius: 0.9rem;
+  --radius: 1rem;
   color-scheme: dark;
 
   --background: oklch(0 0 0);
@@ -146,7 +146,7 @@
 
 /* ---------- Pristine White — clinical white + sharp violet ---------- */
 [data-theme="light"] {
-  --radius: 0.9rem;
+  --radius: 1rem;
   color-scheme: light;
 
   --background: oklch(1 0 0);
@@ -202,7 +202,11 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+    letter-spacing: -0.005em;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
     background-image: radial-gradient(
       ellipse 80% 60% at 50% -10%,
       color-mix(in oklab, var(--primary) 14%, transparent),
@@ -210,6 +214,32 @@
     );
     background-attachment: fixed;
   }
+
+  h1, h2, h3, h4 {
+    letter-spacing: -0.02em;
+  }
+}
+
+/* Premium page transition — smooth fade + slight lift on route change */
+@keyframes flux-page-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.flux-page-transition {
+  animation: flux-page-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Consistent focus ring across all interactive elements */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--primary) 65%, transparent);
+  outline-offset: 2px;
+  border-radius: calc(var(--radius) - 4px);
 }
 
 @utility glow-soft {

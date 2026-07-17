@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -146,6 +147,7 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -153,7 +155,9 @@ function RootComponent() {
         <ThemeProvider>
           {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
           <main>
-            <Outlet />
+            <div key={pathname} className="flux-page-transition">
+              <Outlet />
+            </div>
           </main>
           <Toaster />
         </ThemeProvider>
