@@ -146,7 +146,7 @@
 
 /* ---------- Pristine White — clinical white + sharp violet ---------- */
 [data-theme="light"] {
-  --radius: 0.9rem;
+  --radius: 1rem;
   color-scheme: light;
 
   --background: oklch(1 0 0);
