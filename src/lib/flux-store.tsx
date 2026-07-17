@@ -417,9 +417,15 @@ export function FluxProvider({ children }: { children: ReactNode }) {
     [profiles],
   );
 
+  const completionsSet = useMemo(
+    () => new Set(completionsBy.keys()),
+    [completionsBy],
+  );
+
   const value = useMemo<FluxContextValue>(
     () => ({
       tasks,
+      completions: completionsSet,
       ready,
       selectedDate,
       setSelectedDate,
