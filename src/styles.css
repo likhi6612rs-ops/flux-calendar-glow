@@ -101,7 +101,7 @@
 
 /* ---------- True Dark — pure black + neon lavender ---------- */
 [data-theme="true-dark"] {
-  --radius: 0.9rem;
+  --radius: 1rem;
   color-scheme: dark;
 
   --background: oklch(0 0 0);
