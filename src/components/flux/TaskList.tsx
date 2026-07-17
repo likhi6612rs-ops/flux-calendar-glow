@@ -133,8 +133,8 @@ export function TaskList() {
           {tasks.map((task) => {
             const done = isCompleted(task.id, selectedDate);
             const multi = task.span_days > 1;
-            const mine = isMine ? isMine(task) : true;
-            const completerId = done ? completedBy?.(task.id, selectedDate) : null;
+            const completerId =
+              done && completedBy ? completedBy(task.id, selectedDate) : null;
             const completerProfile =
               completerId && completerId !== task.user_id && profileFor
                 ? profileFor(completerId)
