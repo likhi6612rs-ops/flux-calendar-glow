@@ -85,6 +85,8 @@ const ckey = (taskId: string, date: string) => `${taskId}|${date}`;
 
 interface FluxContextValue {
   tasks: TaskSpan[];
+  /** Set of `${taskId}|${date}` for every completion visible to the user. */
+  completions: Set<string>;
   ready: boolean;
   selectedDate: string;
   setSelectedDate: (key: string) => void;
