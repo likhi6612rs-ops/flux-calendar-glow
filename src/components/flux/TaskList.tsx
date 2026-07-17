@@ -19,13 +19,10 @@ export function TaskList() {
     selectedDate,
     tasksForDate,
     isCompleted,
-    completedBy,
     addTask,
     toggleTask,
     editTask,
     deleteTask,
-    isMine,
-    profileFor,
   } = useFlux();
   const { guard } = usePremium();
 
