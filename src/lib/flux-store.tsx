@@ -449,6 +449,7 @@ export function FluxProvider({ children }: { children: ReactNode }) {
     }),
     [
       tasks,
+      completionsSet,
       ready,
       selectedDate,
       tasksForDate,
