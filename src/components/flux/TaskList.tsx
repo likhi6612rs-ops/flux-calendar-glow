@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Plus, X, Check, Sparkles } from "lucide-react";
-import { useFlux, SPAN_OPTIONS, type TaskSpan } from "@/lib/flux-store";
-import { isToday, shortLabel } from "@/lib/flux-date";
+import { Plus, X, Check, Sparkles, ArrowRight } from "lucide-react";
+import { useFlux, SPAN_OPTIONS, MAX_TRANSFERS, type TaskSpan } from "@/lib/flux-store";
+import { isToday, isPast, shortLabel } from "@/lib/flux-date";
 import { usePremium } from "@/lib/premium";
 import { GeminiCoach } from "./GeminiCoach";
 import {
@@ -23,6 +23,8 @@ export function TaskList() {
     toggleTask,
     editTask,
     deleteTask,
+    shiftTask,
+    isMine,
   } = useFlux();
   const { guard } = usePremium();
 
@@ -130,6 +132,21 @@ export function TaskList() {
           {tasks.map((task) => {
             const done = isCompleted(task.id, selectedDate);
             const multi = task.span_days > 1;
+            const owner = isMine(task.id);
+            const rolloverEligible =
+              owner &&
+              !done &&
+              task.status === "active" &&
+              (isToday(selectedDate) || isPast(selectedDate)) &&
+              task.transfer_count < MAX_TRANSFERS;
+            const attemptLabel =
+              task.transfer_count === 0
+                ? null
+                : task.transfer_count === 1
+                  ? "1st Attempt"
+                  : task.transfer_count === 2
+                    ? "Final Attempt"
+                    : "Expired";
             return (
               <motion.li
                 key={task.id}
@@ -138,7 +155,16 @@ export function TaskList() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, x: 40 }}
                 transition={{ duration: 0.18 }}
-                className="group flex items-center gap-2 rounded-xl border border-border bg-card/40 px-3 py-3"
+                className={cn(
+                  "group flex items-center gap-2 rounded-xl border px-3 py-3 transition-colors",
+                  task.status === "expired"
+                    ? "border-destructive/30 bg-destructive/5 opacity-70"
+                    : task.transfer_count >= 2
+                      ? "border-destructive/40 bg-destructive/10"
+                      : task.transfer_count === 1
+                        ? "border-amber-400/40 bg-amber-500/5"
+                        : "border-border bg-card/40",
+                )}
               >
                 <button
                   type="button"
@@ -183,6 +209,32 @@ export function TaskList() {
                         {task.span_days}d
                       </span>
                     )}
+                    {attemptLabel && (
+                      <span
+                        className={cn(
+                          "ml-2 rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
+                          task.status === "expired"
+                            ? "bg-destructive/20 text-destructive"
+                            : task.transfer_count >= 2
+                              ? "bg-destructive/20 text-destructive"
+                              : "bg-amber-500/20 text-amber-500",
+                        )}
+                      >
+                        {attemptLabel}
+                      </span>
+                    )}
+                  </button>
+                )}
+
+                {rolloverEligible && (
+                  <button
+                    type="button"
+                    onClick={() => shiftTask(task.id)}
+                    aria-label="Shift to tomorrow"
+                    title={`Shift to tomorrow (${MAX_TRANSFERS - task.transfer_count} left)`}
+                    className="flex h-7 items-center gap-1 shrink-0 rounded-md px-2 text-[11px] font-semibold text-primary-glow/80 transition-colors hover:bg-primary/15 hover:text-primary-glow"
+                  >
+                    Tomorrow <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.5} />
                   </button>
                 )}
 

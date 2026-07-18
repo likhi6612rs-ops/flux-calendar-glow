@@ -237,7 +237,9 @@ export type Database = {
           id: string
           span_days: number
           start_date: string
+          status: string
           text: string
+          transfer_count: number
           updated_at: string
           user_id: string
         }
@@ -246,7 +248,9 @@ export type Database = {
           id?: string
           span_days?: number
           start_date: string
+          status?: string
           text: string
+          transfer_count?: number
           updated_at?: string
           user_id: string
         }
@@ -255,7 +259,9 @@ export type Database = {
           id?: string
           span_days?: number
           start_date?: string
+          status?: string
           text?: string
+          transfer_count?: number
           updated_at?: string
           user_id?: string
         }
