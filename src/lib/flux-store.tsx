@@ -232,8 +232,17 @@ export function FluxProvider({ children }: { children: ReactNode }) {
   }, [user, reload]);
 
   const tasksForDate = useCallback(
-    (key: string) => tasks.filter((t) => covers(t, key)),
-    [tasks],
+    (key: string) =>
+      tasks.filter((t) => {
+        if (!covers(t, key)) return false;
+        // My own tasks: always visible.
+        if (user && t.user_id === user.id) return true;
+        // Shared task: must have an active contract covering this date.
+        const win = myContracts.get(t.id);
+        if (!win) return false;
+        return key >= win.startDate && key <= win.endDate;
+      }),
+    [tasks, myContracts, user],
   );
 
   const isCompleted = useCallback(
