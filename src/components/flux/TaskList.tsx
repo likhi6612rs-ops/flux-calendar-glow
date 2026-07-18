@@ -132,6 +132,21 @@ export function TaskList() {
           {tasks.map((task) => {
             const done = isCompleted(task.id, selectedDate);
             const multi = task.span_days > 1;
+            const owner = isMine(task.id);
+            const rolloverEligible =
+              owner &&
+              !done &&
+              task.status === "active" &&
+              (isToday(selectedDate) || isPast(selectedDate)) &&
+              task.transfer_count < MAX_TRANSFERS;
+            const attemptLabel =
+              task.transfer_count === 0
+                ? null
+                : task.transfer_count === 1
+                  ? "1st Attempt"
+                  : task.transfer_count === 2
+                    ? "Final Attempt"
+                    : "Expired";
             return (
               <motion.li
                 key={task.id}
@@ -140,7 +155,16 @@ export function TaskList() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, x: 40 }}
                 transition={{ duration: 0.18 }}
-                className="group flex items-center gap-2 rounded-xl border border-border bg-card/40 px-3 py-3"
+                className={cn(
+                  "group flex items-center gap-2 rounded-xl border px-3 py-3 transition-colors",
+                  task.status === "expired"
+                    ? "border-destructive/30 bg-destructive/5 opacity-70"
+                    : task.transfer_count >= 2
+                      ? "border-destructive/40 bg-destructive/10"
+                      : task.transfer_count === 1
+                        ? "border-amber-400/40 bg-amber-500/5"
+                        : "border-border bg-card/40",
+                )}
               >
                 <button
                   type="button"
