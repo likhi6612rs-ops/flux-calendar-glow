@@ -209,6 +209,32 @@ export function TaskList() {
                         {task.span_days}d
                       </span>
                     )}
+                    {attemptLabel && (
+                      <span
+                        className={cn(
+                          "ml-2 rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
+                          task.status === "expired"
+                            ? "bg-destructive/20 text-destructive"
+                            : task.transfer_count >= 2
+                              ? "bg-destructive/20 text-destructive"
+                              : "bg-amber-500/20 text-amber-500",
+                        )}
+                      >
+                        {attemptLabel}
+                      </span>
+                    )}
+                  </button>
+                )}
+
+                {rolloverEligible && (
+                  <button
+                    type="button"
+                    onClick={() => shiftTask(task.id)}
+                    aria-label="Shift to tomorrow"
+                    title={`Shift to tomorrow (${MAX_TRANSFERS - task.transfer_count} left)`}
+                    className="flex h-7 items-center gap-1 shrink-0 rounded-md px-2 text-[11px] font-semibold text-primary-glow/80 transition-colors hover:bg-primary/15 hover:text-primary-glow"
+                  >
+                    Tomorrow <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.5} />
                   </button>
                 )}
 
