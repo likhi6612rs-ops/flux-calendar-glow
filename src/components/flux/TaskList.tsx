@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Plus, X, Check, Sparkles } from "lucide-react";
-import { useFlux, SPAN_OPTIONS, type TaskSpan } from "@/lib/flux-store";
-import { isToday, shortLabel } from "@/lib/flux-date";
+import { Plus, X, Check, Sparkles, ArrowRight } from "lucide-react";
+import { useFlux, SPAN_OPTIONS, MAX_TRANSFERS, type TaskSpan } from "@/lib/flux-store";
+import { isToday, isPast, shortLabel } from "@/lib/flux-date";
 import { usePremium } from "@/lib/premium";
 import { GeminiCoach } from "./GeminiCoach";
 import {
