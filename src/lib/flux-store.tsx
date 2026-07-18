@@ -141,15 +141,31 @@ export function FluxProvider({ children }: { children: ReactNode }) {
 
   const reload = useCallback(async () => {
     if (!user) return;
-    // Tasks the RLS layer lets us see (own + shared-with-us via task_permissions)
-    const [{ data: t }, { data: c }] = await Promise.all([
+    // Tasks the RLS layer lets us see (own + shared-with-us via active_contracts)
+    const [{ data: t }, { data: c }, { data: ac }] = await Promise.all([
       supabase
         .from("tasks")
         .select("id, text, start_date, span_days, user_id, transfer_count, status"),
       supabase.from("task_completions").select("task_id, date, user_id"),
+      supabase
+        .from("active_contracts")
+        .select("task_id, start_date, end_date")
+        .eq("connector_id", user.id),
     ]);
     const nextTasks = (t ?? []) as TaskSpan[];
     setTasks(nextTasks);
+    const map = new Map<string, string>();
+    (c ?? []).forEach((r) => map.set(ckey(r.task_id, r.date), r.user_id));
+    setCompletionsBy(map);
+    const cw = new Map<string, ContractWindow>();
+    (ac ?? []).forEach((r) =>
+      cw.set(r.task_id, {
+        taskId: r.task_id,
+        startDate: r.start_date,
+        endDate: r.end_date,
+      }),
+    );
+    setMyContracts(cw);
     const map = new Map<string, string>();
     (c ?? []).forEach((r) => map.set(ckey(r.task_id, r.date), r.user_id));
     setCompletionsBy(map);
