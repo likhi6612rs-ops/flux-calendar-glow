@@ -112,6 +112,7 @@ interface FluxContextValue {
   isMine: (taskId: string) => boolean;
   ownerOf: (taskId: string) => ProfileLite | null;
   profileFor: (userId: string | null | undefined) => ProfileLite | null;
+  shiftTask: (taskId: string) => Promise<void>;
   reload: () => Promise<void>;
 }
 
