@@ -44,6 +44,12 @@ export interface TaskSpan {
   status: "active" | "expired";
 }
 
+export interface ContractWindow {
+  taskId: string;
+  startDate: string;
+  endDate: string;
+}
+
 export const MAX_TRANSFERS = 3;
 
 export interface ProfileLite {
