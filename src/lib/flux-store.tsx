@@ -330,11 +330,35 @@ export function FluxProvider({ children }: { children: ReactNode }) {
           start_date: selectedDate,
           span_days: spanDays,
         })
-        .select("id, text, start_date, span_days, user_id")
+        .select("id, text, start_date, span_days, user_id, transfer_count, status")
         .single();
       if (data) setTasks((prev) => [...prev, data as TaskSpan]);
     },
     [user, selectedDate],
+  );
+
+  const shiftTask = useCallback(
+    async (taskId: string) => {
+      if (!user) return;
+      const target = tasks.find((t) => t.id === taskId);
+      if (!target || target.user_id !== user.id) return;
+      if (target.status === "expired") return;
+      if (target.transfer_count >= MAX_TRANSFERS) return;
+
+      const nextCount = target.transfer_count + 1;
+      const willExpire = nextCount >= MAX_TRANSFERS;
+      const tomorrow = format(addDays(new Date(), 1), "yyyy-MM-dd");
+
+      const patch = willExpire
+        ? { transfer_count: nextCount, status: "expired" as const }
+        : { transfer_count: nextCount, start_date: tomorrow };
+
+      setTasks((prev) =>
+        prev.map((t) => (t.id === taskId ? { ...t, ...patch } : t)),
+      );
+      await supabase.from("tasks").update(patch).eq("id", taskId);
+    },
+    [user, tasks],
   );
 
   const toggleTask = useCallback(
