@@ -476,6 +476,7 @@ export function FluxProvider({ children }: { children: ReactNode }) {
       isMine,
       ownerOf,
       profileFor,
+      shiftTask,
       reload,
     }),
     [
@@ -499,6 +500,7 @@ export function FluxProvider({ children }: { children: ReactNode }) {
       isMine,
       ownerOf,
       profileFor,
+      shiftTask,
       reload,
     ],
   );
