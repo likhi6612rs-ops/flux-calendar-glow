@@ -209,7 +209,7 @@ export function FluxProvider({ children }: { children: ReactNode }) {
   }, [user, reload]);
 
   const tasksForDate = useCallback(
-    (key: string) => tasks.filter((t) => t.status !== "expired" && covers(t, key)),
+    (key: string) => tasks.filter((t) => covers(t, key)),
     [tasks],
   );
 
