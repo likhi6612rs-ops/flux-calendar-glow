@@ -40,7 +40,11 @@ export interface TaskSpan {
   start_date: string;
   span_days: number;
   user_id: string;
+  transfer_count: number;
+  status: "active" | "expired";
 }
+
+export const MAX_TRANSFERS = 3;
 
 export interface ProfileLite {
   id: string;
