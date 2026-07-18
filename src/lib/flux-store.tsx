@@ -44,6 +44,12 @@ export interface TaskSpan {
   status: "active" | "expired";
 }
 
+export interface ContractWindow {
+  taskId: string;
+  startDate: string;
+  endDate: string;
+}
+
 export const MAX_TRANSFERS = 3;
 
 export interface ProfileLite {
@@ -126,23 +132,40 @@ export function FluxProvider({ children }: { children: ReactNode }) {
     new Map(),
   );
   const [profiles, setProfiles] = useState<Map<string, ProfileLite>>(new Map());
+  // Contracts where I'm the connector: taskId → date window
+  const [myContracts, setMyContracts] = useState<Map<string, ContractWindow>>(
+    new Map(),
+  );
   const [selectedDate, setSelectedDate] = useState<string>(() => todayKey());
   const [ready, setReady] = useState(false);
 
   const reload = useCallback(async () => {
     if (!user) return;
-    // Tasks the RLS layer lets us see (own + shared-with-us via task_permissions)
-    const [{ data: t }, { data: c }] = await Promise.all([
+    // Tasks the RLS layer lets us see (own + shared-with-us via active_contracts)
+    const [{ data: t }, { data: c }, { data: ac }] = await Promise.all([
       supabase
         .from("tasks")
         .select("id, text, start_date, span_days, user_id, transfer_count, status"),
       supabase.from("task_completions").select("task_id, date, user_id"),
+      supabase
+        .from("active_contracts")
+        .select("task_id, start_date, end_date")
+        .eq("connector_id", user.id),
     ]);
     const nextTasks = (t ?? []) as TaskSpan[];
     setTasks(nextTasks);
     const map = new Map<string, string>();
     (c ?? []).forEach((r) => map.set(ckey(r.task_id, r.date), r.user_id));
     setCompletionsBy(map);
+    const cw = new Map<string, ContractWindow>();
+    (ac ?? []).forEach((r) =>
+      cw.set(r.task_id, {
+        taskId: r.task_id,
+        startDate: r.start_date,
+        endDate: r.end_date,
+      }),
+    );
+    setMyContracts(cw);
 
     // Pull profiles for anyone whose id appears in tasks (owners) or completions.
     const needed = new Set<string>();
@@ -196,9 +219,9 @@ export function FluxProvider({ children }: { children: ReactNode }) {
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "task_permissions" },
+        { event: "*", schema: "public", table: "active_contracts" },
         () => {
-          // Access grants changed — reload tasks visibility.
+          // Delegation contracts changed — reload visibility.
           reload();
         },
       )
@@ -209,8 +232,17 @@ export function FluxProvider({ children }: { children: ReactNode }) {
   }, [user, reload]);
 
   const tasksForDate = useCallback(
-    (key: string) => tasks.filter((t) => covers(t, key)),
-    [tasks],
+    (key: string) =>
+      tasks.filter((t) => {
+        if (!covers(t, key)) return false;
+        // My own tasks: always visible.
+        if (user && t.user_id === user.id) return true;
+        // Shared task: must have an active contract covering this date.
+        const win = myContracts.get(t.id);
+        if (!win) return false;
+        return key >= win.startDate && key <= win.endDate;
+      }),
+    [tasks, myContracts, user],
   );
 
   const isCompleted = useCallback(

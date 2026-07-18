@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Users,
   Copy,
@@ -8,27 +8,40 @@ import {
   EyeOff,
   Loader2,
   Settings2,
+  LogOut,
+  CalendarClock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { Avatar } from "./Avatar";
-import { ShareAccessModal } from "./ShareAccessModal";
+import { DelegationWizard } from "./DelegationWizard";
 import type { ProfileLite } from "@/lib/flux-store";
+
+const MAX_CONNECTORS = 5;
+
+interface IncomingContract {
+  owner: ProfileLite;
+  startDate: string;
+  endDate: string;
+  taskCount: number;
+}
 
 export function TeamConnections() {
   const { user } = useAuth();
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [showTasks, setShowTasks] = useState(true);
   const [connections, setConnections] = useState<ProfileLite[]>([]);
+  const [incoming, setIncoming] = useState<IncomingContract[]>([]);
   const [copied, setCopied] = useState(false);
   const [joinCode, setJoinCode] = useState("");
   const [joining, setJoining] = useState(false);
   const [savingPrivacy, setSavingPrivacy] = useState(false);
-  const [configuring, setConfiguring] = useState<ProfileLite | null>(null);
+  const [delegating, setDelegating] = useState<ProfileLite | null>(null);
+  const [disconnecting, setDisconnecting] = useState<string | null>(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!user) return;
     const { data: profile } = await supabase
       .from("profiles")
@@ -40,30 +53,64 @@ export function TeamConnections() {
       setShowTasks(profile.privacy_show_tasks);
     }
 
+    // My outgoing connections (I invited).
     const { data: rows } = await supabase
       .from("connections")
       .select("requester_id, connected_user_id")
-      .or(`requester_id.eq.${user.id},connected_user_id.eq.${user.id}`);
-    const otherIds = (rows ?? [])
-      .map((r) =>
-        r.requester_id === user.id ? r.connected_user_id : r.requester_id,
-      )
-      .filter((id, i, a) => a.indexOf(id) === i);
-    if (otherIds.length === 0) {
+      .eq("requester_id", user.id);
+    const otherIds = (rows ?? []).map((r) => r.connected_user_id);
+    if (otherIds.length > 0) {
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("id, display_name, full_name, email, avatar_url")
+        .in("id", otherIds);
+      setConnections((profs ?? []) as ProfileLite[]);
+    } else {
       setConnections([]);
-      return;
     }
-    const { data: profs } = await supabase
-      .from("profiles")
-      .select("id, display_name, full_name, email, avatar_url")
-      .in("id", otherIds);
-    setConnections((profs ?? []) as ProfileLite[]);
-  };
+
+    // Contracts assigned TO me (I am the connector).
+    const { data: contracts } = await supabase
+      .from("active_contracts")
+      .select("owner_id, task_id, start_date, end_date")
+      .eq("connector_id", user.id);
+    if (contracts && contracts.length > 0) {
+      const ownerIds = [...new Set(contracts.map((c) => c.owner_id))];
+      const { data: owners } = await supabase
+        .from("profiles")
+        .select("id, display_name, full_name, email, avatar_url")
+        .in("id", ownerIds);
+      const oMap = new Map<string, ProfileLite>(
+        (owners ?? []).map((o) => [o.id, o as ProfileLite]),
+      );
+      const grouped = new Map<string, IncomingContract>();
+      contracts.forEach((c) => {
+        const key = c.owner_id;
+        const owner = oMap.get(key);
+        if (!owner) return;
+        const existing = grouped.get(key);
+        if (!existing) {
+          grouped.set(key, {
+            owner,
+            startDate: c.start_date,
+            endDate: c.end_date,
+            taskCount: 1,
+          });
+        } else {
+          existing.taskCount += 1;
+          if (c.start_date < existing.startDate) existing.startDate = c.start_date;
+          if (c.end_date > existing.endDate) existing.endDate = c.end_date;
+        }
+      });
+      setIncoming([...grouped.values()]);
+    } else {
+      setIncoming([]);
+    }
+  }, [user]);
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  }, [load]);
 
   const copyCode = async () => {
     if (!inviteCode) return;
@@ -79,6 +126,15 @@ export function TeamConnections() {
   const joinTeam = async () => {
     const code = joinCode.trim().toUpperCase();
     if (code.length !== 6 || !user) return;
+
+    // Governance: max 5 connectors — friendly guard before the RPC.
+    if (connections.length >= MAX_CONNECTORS) {
+      toast.error(
+        "Connection limit reached. Please remove a connector to add a new one.",
+      );
+      return;
+    }
+
     setJoining(true);
     const { error } = await supabase.rpc("join_by_invite_code", { _code: code });
     setJoining(false);
@@ -107,14 +163,42 @@ export function TeamConnections() {
     }
   };
 
+  // Self-removal: I (the connector) drop every contract this owner has on me,
+  // instantly revoking my access to their tasks.
+  const disconnectFromOwner = async (ownerId: string) => {
+    if (!user) return;
+    setDisconnecting(ownerId);
+    const { error } = await supabase
+      .from("active_contracts")
+      .delete()
+      .eq("owner_id", ownerId)
+      .eq("connector_id", user.id);
+    setDisconnecting(null);
+    if (error) {
+      toast.error("Couldn't disconnect.");
+      return;
+    }
+    toast.success("Disconnected — their tasks are no longer visible to you.");
+    load();
+  };
+
+  const atLimit = connections.length >= MAX_CONNECTORS;
+
   return (
     <div className="rounded-xl border border-primary/20 bg-primary/[0.04] p-3">
       <p className="flex items-center justify-between gap-1.5 text-sm font-bold text-primary">
         <span className="flex items-center gap-1.5">
           <Users className="h-4 w-4" /> Team &amp; Connections
         </span>
-        <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[11px]">
-          {connections.length} connected
+        <span
+          className={cn(
+            "rounded-full px-2 py-0.5 text-[11px]",
+            atLimit
+              ? "bg-destructive/20 text-destructive"
+              : "bg-primary/15 text-primary",
+          )}
+        >
+          {connections.length}/{MAX_CONNECTORS} used
         </span>
       </p>
 
@@ -161,7 +245,7 @@ export function TeamConnections() {
           />
           <button
             onClick={joinTeam}
-            disabled={joining || joinCode.trim().length !== 6}
+            disabled={joining || joinCode.trim().length !== 6 || atLimit}
             aria-label="Join team"
             className="flex h-11 shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground transition-transform active:scale-95 disabled:opacity-50"
           >
@@ -173,12 +257,19 @@ export function TeamConnections() {
             Join
           </button>
         </div>
+        {atLimit && (
+          <p className="mt-1.5 text-[11px] text-destructive">
+            Connection limit reached. Please remove a connector to add a new one.
+          </p>
+        )}
       </div>
 
-      {/* Connection list */}
+      {/* My connectors — I can delegate tasks to them */}
       {connections.length > 0 && (
         <div className="mt-4">
-          <p className="mb-1.5 text-xs text-muted-foreground">Your team</p>
+          <p className="mb-1.5 text-xs text-muted-foreground">
+            Your connectors — delegate specific tasks
+          </p>
           <ul className="space-y-1.5">
             {connections.map((c) => (
               <li
@@ -203,11 +294,58 @@ export function TeamConnections() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setConfiguring(c)}
+                  onClick={() => setDelegating(c)}
                   className="flex items-center gap-1 rounded-md border border-primary/40 bg-primary/10 px-2 py-1 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/20"
-                  aria-label={`Configure access for ${c.display_name || c.email}`}
+                  aria-label={`Delegate tasks to ${c.display_name || c.email}`}
                 >
-                  <Settings2 className="h-3 w-3" /> Access
+                  <Settings2 className="h-3 w-3" /> Delegate
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Contracts assigned to me — I can self-remove */}
+      {incoming.length > 0 && (
+        <div className="mt-4">
+          <p className="mb-1.5 text-xs text-muted-foreground">
+            Shared with you — active contracts
+          </p>
+          <ul className="space-y-1.5">
+            {incoming.map((c) => (
+              <li
+                key={c.owner.id}
+                className="flex items-center gap-2 rounded-lg border border-border bg-background/40 px-2.5 py-2"
+              >
+                <Avatar
+                  name={c.owner.display_name || c.owner.full_name}
+                  email={c.owner.email}
+                  url={null}
+                  size="sm"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold">
+                    {c.owner.display_name || c.owner.full_name || c.owner.email}
+                  </p>
+                  <p className="flex items-center gap-1 truncate text-[11px] text-muted-foreground">
+                    <CalendarClock className="h-3 w-3" />
+                    {c.taskCount} task{c.taskCount === 1 ? "" : "s"} · {c.startDate} → {c.endDate}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => disconnectFromOwner(c.owner.id)}
+                  disabled={disconnecting === c.owner.id}
+                  className="flex items-center gap-1 rounded-md border border-destructive/40 bg-destructive/10 px-2 py-1 text-[11px] font-semibold text-destructive transition-colors hover:bg-destructive/20 disabled:opacity-50"
+                  aria-label={`Disconnect from ${c.owner.display_name || c.owner.email}`}
+                >
+                  {disconnecting === c.owner.id ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <LogOut className="h-3 w-3" />
+                  )}
+                  Disconnect
                 </button>
               </li>
             ))}
@@ -238,8 +376,8 @@ export function TeamConnections() {
             </span>
             <span className="block text-xs text-muted-foreground">
               {showTasks
-                ? "Use Access above to pick which tasks each teammate sees"
-                : "Sharing paused — no one can see your tasks"}
+                ? "Use Delegate to sign a per-connector contract"
+                : "Sharing paused — no new contracts will apply"}
             </span>
           </span>
         </span>
@@ -258,10 +396,11 @@ export function TeamConnections() {
         </span>
       </button>
 
-      {configuring && (
-        <ShareAccessModal
-          connector={configuring}
-          onClose={() => setConfiguring(null)}
+      {delegating && (
+        <DelegationWizard
+          connector={delegating}
+          onClose={() => setDelegating(null)}
+          onSaved={load}
         />
       )}
     </div>

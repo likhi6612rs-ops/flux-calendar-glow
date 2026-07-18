@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      active_contracts: {
+        Row: {
+          connector_id: string
+          created_at: string
+          end_date: string
+          id: string
+          owner_id: string
+          start_date: string
+          task_id: string
+        }
+        Insert: {
+          connector_id: string
+          created_at?: string
+          end_date: string
+          id?: string
+          owner_id: string
+          start_date: string
+          task_id: string
+        }
+        Update: {
+          connector_id?: string
+          created_at?: string
+          end_date?: string
+          id?: string
+          owner_id?: string
+          start_date?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "active_contracts_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_config: {
         Row: {
           app_version: string
@@ -90,6 +128,7 @@ export type Database = {
           full_name: string | null
           id: string
           invite_code: string | null
+          max_connectors: number
           mobile: string | null
           privacy_show_tasks: boolean
           theme: string
@@ -106,6 +145,7 @@ export type Database = {
           full_name?: string | null
           id: string
           invite_code?: string | null
+          max_connectors?: number
           mobile?: string | null
           privacy_show_tasks?: boolean
           theme?: string
@@ -122,6 +162,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           invite_code?: string | null
+          max_connectors?: number
           mobile?: string | null
           privacy_show_tasks?: boolean
           theme?: string
