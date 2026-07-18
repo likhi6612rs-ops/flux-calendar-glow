@@ -219,9 +219,9 @@ export function FluxProvider({ children }: { children: ReactNode }) {
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "task_permissions" },
+        { event: "*", schema: "public", table: "active_contracts" },
         () => {
-          // Access grants changed — reload tasks visibility.
+          // Delegation contracts changed — reload visibility.
           reload();
         },
       )
