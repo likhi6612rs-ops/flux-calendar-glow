@@ -132,6 +132,10 @@ export function FluxProvider({ children }: { children: ReactNode }) {
     new Map(),
   );
   const [profiles, setProfiles] = useState<Map<string, ProfileLite>>(new Map());
+  // Contracts where I'm the connector: taskId → date window
+  const [myContracts, setMyContracts] = useState<Map<string, ContractWindow>>(
+    new Map(),
+  );
   const [selectedDate, setSelectedDate] = useState<string>(() => todayKey());
   const [ready, setReady] = useState(false);
 
