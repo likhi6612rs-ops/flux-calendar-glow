@@ -166,9 +166,6 @@ export function FluxProvider({ children }: { children: ReactNode }) {
       }),
     );
     setMyContracts(cw);
-    const map = new Map<string, string>();
-    (c ?? []).forEach((r) => map.set(ckey(r.task_id, r.date), r.user_id));
-    setCompletionsBy(map);
 
     // Pull profiles for anyone whose id appears in tasks (owners) or completions.
     const needed = new Set<string>();
