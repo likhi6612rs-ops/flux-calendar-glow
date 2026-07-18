@@ -135,7 +135,7 @@ export function FluxProvider({ children }: { children: ReactNode }) {
     const [{ data: t }, { data: c }] = await Promise.all([
       supabase
         .from("tasks")
-        .select("id, text, start_date, span_days, user_id"),
+        .select("id, text, start_date, span_days, user_id, transfer_count, status"),
       supabase.from("task_completions").select("task_id, date, user_id"),
     ]);
     const nextTasks = (t ?? []) as TaskSpan[];
