@@ -23,6 +23,8 @@ export function TaskList() {
     toggleTask,
     editTask,
     deleteTask,
+    shiftTask,
+    isMine,
   } = useFlux();
   const { guard } = usePremium();
 
