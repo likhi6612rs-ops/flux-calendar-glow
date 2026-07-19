@@ -63,19 +63,30 @@ export function ProfileEditor() {
 
   const save = async () => {
     if (!user) return;
+    const cleanUsername = username.trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
+    if (cleanUsername && cleanUsername.length < 3) {
+      toast.error("Username must be at least 3 characters.");
+      return;
+    }
     setSaving(true);
     const { error } = await supabase
       .from("profiles")
       .update({
         display_name: displayName.trim() || null,
+        username: cleanUsername || null,
         full_name: fullName.trim() || null,
-      })
+      } as never)
       .eq("id", user.id);
     setSaving(false);
     if (error) {
-      toast.error("Couldn't save profile.");
+      toast.error(
+        error.message.includes("duplicate")
+          ? "That username is already taken."
+          : "Couldn't save profile.",
+      );
       return;
     }
+    setUsername(cleanUsername);
     setSavedAt(Date.now());
     reload();
   };
