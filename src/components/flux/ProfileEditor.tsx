@@ -13,6 +13,7 @@ export function ProfileEditor() {
   const { user } = useAuth();
   const { reload } = useFlux();
   const [displayName, setDisplayName] = useState("");
+  const [username, setUsername] = useState("");
   const [fullName, setFullName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
@@ -25,13 +26,20 @@ export function ProfileEditor() {
     if (!user) return;
     supabase
       .from("profiles")
-      .select("display_name, full_name, avatar_url")
+      .select("display_name, username, full_name, avatar_url")
       .eq("id", user.id)
       .maybeSingle()
       .then(({ data }) => {
-        setDisplayName(data?.display_name ?? "");
-        setFullName(data?.full_name ?? "");
-        setAvatarUrl(data?.avatar_url ?? null);
+        const row = data as {
+          display_name?: string | null;
+          username?: string | null;
+          full_name?: string | null;
+          avatar_url?: string | null;
+        } | null;
+        setDisplayName(row?.display_name ?? "");
+        setUsername(row?.username ?? "");
+        setFullName(row?.full_name ?? "");
+        setAvatarUrl(row?.avatar_url ?? null);
       });
   }, [user]);
 
