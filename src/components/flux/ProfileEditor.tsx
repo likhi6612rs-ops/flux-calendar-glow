@@ -182,6 +182,26 @@ export function ProfileEditor() {
       />
 
       <label className="mt-3 block text-xs text-muted-foreground">
+        Username
+      </label>
+      <div className="mt-1 flex items-center gap-2 rounded-lg border border-input bg-background/60 px-3 py-2 focus-within:border-primary transition-colors">
+        <span className="text-sm text-muted-foreground">@</span>
+        <input
+          value={username}
+          onChange={(e) =>
+            setUsername(
+              e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 24),
+            )
+          }
+          placeholder="your_handle"
+          className="flex-1 bg-transparent text-sm outline-none"
+        />
+      </div>
+      <p className="mt-1 text-[10px] text-muted-foreground">
+        Lowercase letters, numbers, and underscores. Unique across Flux.
+      </p>
+
+      <label className="mt-3 block text-xs text-muted-foreground">
         Full name
       </label>
       <input
