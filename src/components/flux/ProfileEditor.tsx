@@ -13,6 +13,7 @@ export function ProfileEditor() {
   const { user } = useAuth();
   const { reload } = useFlux();
   const [displayName, setDisplayName] = useState("");
+  const [username, setUsername] = useState("");
   const [fullName, setFullName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
@@ -25,13 +26,20 @@ export function ProfileEditor() {
     if (!user) return;
     supabase
       .from("profiles")
-      .select("display_name, full_name, avatar_url")
+      .select("display_name, username, full_name, avatar_url")
       .eq("id", user.id)
       .maybeSingle()
       .then(({ data }) => {
-        setDisplayName(data?.display_name ?? "");
-        setFullName(data?.full_name ?? "");
-        setAvatarUrl(data?.avatar_url ?? null);
+        const row = data as {
+          display_name?: string | null;
+          username?: string | null;
+          full_name?: string | null;
+          avatar_url?: string | null;
+        } | null;
+        setDisplayName(row?.display_name ?? "");
+        setUsername(row?.username ?? "");
+        setFullName(row?.full_name ?? "");
+        setAvatarUrl(row?.avatar_url ?? null);
       });
   }, [user]);
 
@@ -55,19 +63,30 @@ export function ProfileEditor() {
 
   const save = async () => {
     if (!user) return;
+    const cleanUsername = username.trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
+    if (cleanUsername && cleanUsername.length < 3) {
+      toast.error("Username must be at least 3 characters.");
+      return;
+    }
     setSaving(true);
     const { error } = await supabase
       .from("profiles")
       .update({
         display_name: displayName.trim() || null,
+        username: cleanUsername || null,
         full_name: fullName.trim() || null,
-      })
+      } as never)
       .eq("id", user.id);
     setSaving(false);
     if (error) {
-      toast.error("Couldn't save profile.");
+      toast.error(
+        error.message.includes("duplicate")
+          ? "That username is already taken."
+          : "Couldn't save profile.",
+      );
       return;
     }
+    setUsername(cleanUsername);
     setSavedAt(Date.now());
     reload();
   };
@@ -161,6 +180,26 @@ export function ProfileEditor() {
         placeholder="How teammates see you"
         className="mt-1 w-full rounded-lg border border-input bg-background/60 px-3 py-2 text-sm outline-none transition-colors focus:border-primary"
       />
+
+      <label className="mt-3 block text-xs text-muted-foreground">
+        Username
+      </label>
+      <div className="mt-1 flex items-center gap-2 rounded-lg border border-input bg-background/60 px-3 py-2 focus-within:border-primary transition-colors">
+        <span className="text-sm text-muted-foreground">@</span>
+        <input
+          value={username}
+          onChange={(e) =>
+            setUsername(
+              e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 24),
+            )
+          }
+          placeholder="your_handle"
+          className="flex-1 bg-transparent text-sm outline-none"
+        />
+      </div>
+      <p className="mt-1 text-[10px] text-muted-foreground">
+        Lowercase letters, numbers, and underscores. Unique across Flux.
+      </p>
 
       <label className="mt-3 block text-xs text-muted-foreground">
         Full name

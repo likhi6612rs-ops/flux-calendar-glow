@@ -135,6 +135,7 @@ export type Database = {
           tier: string
           timer_completion_count: number
           updated_at: string
+          username: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -152,6 +153,7 @@ export type Database = {
           tier?: string
           timer_completion_count?: number
           updated_at?: string
+          username?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -169,6 +171,7 @@ export type Database = {
           tier?: string
           timer_completion_count?: number
           updated_at?: string
+          username?: string | null
         }
         Relationships: []
       }

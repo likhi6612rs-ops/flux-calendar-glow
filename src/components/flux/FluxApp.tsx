@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
+import { Link } from "@tanstack/react-router";
 import {
   CalendarDays,
   Timer,
@@ -8,6 +9,7 @@ import {
   Sparkles,
   PanelRightClose,
   PanelRightOpen,
+  Settings as SettingsIcon,
 } from "lucide-react";
 import { useFlux } from "@/lib/flux-store";
 import { usePremium, tierLabel } from "@/lib/premium";
@@ -306,6 +308,14 @@ export function FluxApp() {
                 </button>
               );
             })}
+            <Link
+              to="/settings"
+              className="relative flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-semibold text-muted-foreground transition-colors hover:text-primary-glow"
+              activeProps={{ className: "text-primary-glow" }}
+            >
+              <SettingsIcon className="h-5 w-5" />
+              Settings
+            </Link>
           </div>
         </nav>
       )}
