@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { AnimatePresence, motion, type PanInfo } from "motion/react";
-import { Check, ChevronLeft, ChevronRight, CalendarCheck, Crown } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarCheck, Crown } from "lucide-react";
 import {
   buildMonths,
   currentMonthIndex,
@@ -130,7 +130,7 @@ export function MultiMonthCalendar() {
                   className={cn(
                     "relative flex aspect-square items-center justify-center rounded-xl border text-sm font-semibold transition-colors duration-300",
                     complete
-                      ? "border-transparent bg-success text-success-foreground glow-soft"
+                      ? "border-calendar-complete/50 bg-calendar-complete/10 text-calendar-complete hover:border-calendar-complete/80"
                       : overdue
                         ? "border-destructive/50 bg-destructive/10 text-destructive hover:border-destructive"
                         : "border-border bg-card/40 text-muted-foreground hover:border-primary/60 hover:text-foreground",
@@ -145,11 +145,7 @@ export function MultiMonthCalendar() {
                       aria-hidden
                     />
                   )}
-                  {complete ? (
-                    <Check className="h-4 w-4" strokeWidth={3} />
-                  ) : (
-                    <span className="relative">{dayNumber(key)}</span>
-                  )}
+                  <span className="relative">{dayNumber(key)}</span>
                   {today && (
                     <span className="absolute bottom-1 h-1 w-1 rounded-full bg-primary" />
                   )}
