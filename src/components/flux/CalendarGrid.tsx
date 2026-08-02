@@ -1,5 +1,4 @@
 import { motion } from "motion/react";
-import { Check } from "lucide-react";
 import { getMonthInfo, dayNumber, isToday } from "@/lib/flux-date";
 import { useFlux } from "@/lib/flux-store";
 import { cn } from "@/lib/utils";
@@ -35,7 +34,7 @@ export function CalendarGrid() {
               className={cn(
                 "relative flex aspect-square items-center justify-center rounded-xl border text-sm font-semibold transition-colors duration-300",
                 complete
-                  ? "border-transparent bg-success text-success-foreground glow-soft"
+                  ? "border-calendar-complete/50 bg-calendar-complete/10 text-calendar-complete hover:border-calendar-complete/80"
                   : "border-border bg-card/40 text-muted-foreground hover:border-primary/60 hover:text-foreground",
                 selected && !complete && "border-primary text-foreground",
                 today && !complete && "ring-1 ring-primary/50",
@@ -48,11 +47,7 @@ export function CalendarGrid() {
                   aria-hidden
                 />
               )}
-              {complete ? (
-                <Check className="h-4 w-4" strokeWidth={3} />
-              ) : (
-                <span className="relative">{dayNumber(key)}</span>
-              )}
+              <span className="relative">{dayNumber(key)}</span>
             </motion.button>
           );
         })}
