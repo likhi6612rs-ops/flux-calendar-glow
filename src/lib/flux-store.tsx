@@ -379,11 +379,15 @@ export function FluxProvider({ children }: { children: ReactNode }) {
 
       const nextCount = target.transfer_count + 1;
       const willExpire = nextCount >= MAX_TRANSFERS;
-      const tomorrow = format(addDays(new Date(), 1), "yyyy-MM-dd");
+      // Base the shift on the task's own date, parsed as a LOCAL date
+      // ("yyyy-MM-dd" via new Date() would be parsed as UTC and can drift a day).
+      const [y, m, d] = target.start_date.split("-").map(Number);
+      const nextDay = format(addDays(new Date(y, m - 1, d), 1), "yyyy-MM-dd");
 
       const patch = willExpire
         ? { transfer_count: nextCount, status: "expired" as const }
-        : { transfer_count: nextCount, start_date: tomorrow };
+        : { transfer_count: nextCount, start_date: nextDay };
+
 
       setTasks((prev) =>
         prev.map((t) => (t.id === taskId ? { ...t, ...patch } : t)),
