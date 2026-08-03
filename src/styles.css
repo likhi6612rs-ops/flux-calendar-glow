@@ -263,3 +263,5 @@ iframe[src*="lovable"],
   visibility: hidden !important;
   pointer-events: none !important;
 }
+
+#lovable-badge { display: none !important; }
