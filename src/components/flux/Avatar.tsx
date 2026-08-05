@@ -1,4 +1,6 @@
 import { cn } from "@/lib/utils";
+import { presetFor } from "./avatar-presets";
+
 
 export interface AvatarProps {
   name?: string | null;
@@ -27,16 +29,22 @@ export function initialsFor(name?: string | null, email?: string | null) {
 
 export function Avatar({ name, email, url, size = "md", className }: AvatarProps) {
   const initials = initialsFor(name, email);
+  const preset = presetFor(url);
+  const PresetIcon = preset?.icon;
   return (
     <span
       aria-label={name || email || "User"}
       className={cn(
-        "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-primary/80 to-primary-glow font-bold text-primary-foreground ring-1 ring-white/10",
+        "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br font-bold text-primary-foreground ring-1 ring-white/10",
+        preset ? preset.gradient : "from-primary/80 to-primary-glow",
         SIZES[size],
         className,
       )}
     >
-      {url ? (
+      {PresetIcon ? (
+        <PresetIcon className="h-[55%] w-[55%]" strokeWidth={2.2} />
+      ) : url ? (
+
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={url}
