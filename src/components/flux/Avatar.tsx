@@ -1,4 +1,6 @@
 import { cn } from "@/lib/utils";
+import { presetFor } from "./avatar-presets";
+
 
 export interface AvatarProps {
   name?: string | null;
