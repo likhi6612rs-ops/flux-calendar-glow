@@ -14,7 +14,7 @@ import {
 import { useFlux, buildSeries } from "@/lib/flux-store";
 import { lastNDayKeys, shortLabel } from "@/lib/flux-date";
 import { usePremium, planForTier } from "@/lib/premium";
-import { TrendChart } from "./TrendChart";
+import { MonthlyInsights } from "./MonthlyInsights";
 import { cn } from "@/lib/utils";
 
 function ScoreTooltip({ active, payload, label }: any) {
@@ -151,7 +151,7 @@ export function InsightsView() {
           Productivity Insights
         </h2>
         <p className="text-xs text-muted-foreground">
-          30-day procrastination analytics & execution consistency.
+          Month-by-month execution consistency. Swipe to travel.
         </p>
       </div>
 
@@ -163,10 +163,7 @@ export function InsightsView() {
         aria-hidden={!unlocked}
       >
         <FocusScoreGraph />
-        <div className="rounded-2xl border border-white/10 bg-card/40 p-4 backdrop-blur-sm">
-          <h3 className="mb-3 text-sm font-bold">Consistency Trend · 14 days</h3>
-          <TrendChart />
-        </div>
+        <MonthlyInsights />
       </div>
 
       {!unlocked && (
