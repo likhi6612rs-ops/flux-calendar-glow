@@ -1,11 +1,36 @@
 import { useMemo } from "react";
 import { motion } from "motion/react";
 import { Lock, TrendingUp, Sparkles } from "lucide-react";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { useFlux, buildSeries } from "@/lib/flux-store";
-import { lastNDayKeys } from "@/lib/flux-date";
+import { lastNDayKeys, shortLabel } from "@/lib/flux-date";
 import { usePremium, planForTier } from "@/lib/premium";
 import { TrendChart } from "./TrendChart";
 import { cn } from "@/lib/utils";
+
+function ScoreTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-xl border border-white/10 bg-popover/90 px-3 py-2 text-xs shadow-lg backdrop-blur-xl">
+      <p className="font-bold text-popover-foreground">{label}</p>
+      <p className="text-muted-foreground">
+        Completion{" "}
+        <span className="font-semibold text-popover-foreground">
+          {payload[0].value}%
+        </span>
+      </p>
+    </div>
+  );
+}
 
 function FocusScoreGraph() {
   const { tasks, completions, procrastination } = useFlux();
@@ -15,18 +40,22 @@ function FocusScoreGraph() {
     [tasks, completions, keys],
   );
 
-  const points = series.map((p) => (p.overall === null ? 0 : p.overall));
+  const data = useMemo(
+    () =>
+      series.map((p) => ({
+        label: shortLabel(p.key),
+        value: Math.round((p.overall === null ? 0 : p.overall) * 100),
+      })),
+    [series],
+  );
+
+  const average = useMemo(() => {
+    if (!data.length) return null;
+    return Math.round(data.reduce((a, b) => a + b.value, 0) / data.length);
+  }, [data]);
+
   const summary = procrastination(30);
   const score = Math.round(summary.ratio * 100);
-
-  const w = 320;
-  const h = 90;
-  const step = points.length > 1 ? w / (points.length - 1) : w;
-  const coords = points.map((v, i) => [i * step, h - v * h] as const);
-  const linePath = coords
-    .map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`)
-    .join(" ");
-  const areaPath = `${linePath} L${w},${h} L0,${h} Z`;
 
   return (
     <div className="rounded-2xl border border-white/10 bg-card/40 p-4 backdrop-blur-sm">
@@ -44,23 +73,68 @@ function FocusScoreGraph() {
           {summary.daysWithDebt} slip days
         </p>
       </div>
-      <svg viewBox={`0 0 ${w} ${h}`} className="h-24 w-full" preserveAspectRatio="none">
-        <defs>
-          <linearGradient id="focusFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.45" />
-            <stop offset="100%" stopColor="var(--primary)" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        <path d={areaPath} fill="url(#focusFill)" />
-        <path
-          d={linePath}
-          fill="none"
-          stroke="var(--primary)"
-          strokeWidth="2"
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
-      </svg>
+      <div className="h-44 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={data} margin={{ top: 12, right: 14, left: -18, bottom: 0 }}>
+            <defs>
+              <linearGradient id="focusFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.45" />
+                <stop offset="100%" stopColor="var(--primary)" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <CartesianGrid
+              vertical={false}
+              stroke="var(--border)"
+              strokeOpacity={0.5}
+              strokeDasharray="3 5"
+            />
+            <XAxis
+              dataKey="label"
+              tick={{ fill: "var(--muted-foreground)", fontSize: 10 }}
+              tickLine={false}
+              axisLine={false}
+              interval="preserveStartEnd"
+              minTickGap={14}
+            />
+            <YAxis
+              domain={[0, 100]}
+              ticks={[0, 25, 50, 75, 100]}
+              tick={{ fill: "var(--muted-foreground)", fontSize: 10 }}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(v) => `${v}%`}
+            />
+            <Tooltip
+              cursor={{ stroke: "var(--primary)", strokeWidth: 1, strokeDasharray: "4 4" }}
+              content={<ScoreTooltip />}
+            />
+            {average !== null && (
+              <ReferenceLine
+                y={average}
+                stroke="var(--primary)"
+                strokeOpacity={0.55}
+                strokeDasharray="6 6"
+                label={{
+                  value: `avg ${average}%`,
+                  position: "insideTopRight",
+                  fill: "var(--muted-foreground)",
+                  fontSize: 10,
+                }}
+              />
+            )}
+            <Area
+              type="monotone"
+              dataKey="value"
+              name="Completion"
+              stroke="var(--primary)"
+              strokeWidth={2.2}
+              fill="url(#focusFill)"
+              dot={{ r: 2.5, fill: "var(--card)", stroke: "var(--primary)", strokeWidth: 2 }}
+              activeDot={{ r: 5, strokeWidth: 2, stroke: "var(--card)" }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }
