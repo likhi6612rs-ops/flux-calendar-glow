@@ -1,7 +1,9 @@
 import { useMemo } from "react";
 import {
+  CartesianGrid,
   Line,
   LineChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -11,10 +13,33 @@ import { useFlux, buildSeries, categoryEfficiency } from "@/lib/flux-store";
 import { shortLabel, lastNDayKeys } from "@/lib/flux-date";
 
 const CATS = [
-  { key: "overall", label: "Overall", color: "var(--chart-1)", width: 2.6 },
+  { key: "overall", label: "Overall", color: "var(--chart-1)", width: 2.4 },
   { key: "sprint", label: "Sprints", color: "var(--chart-2)", width: 1.6 },
   { key: "longhaul", label: "Long-haul", color: "var(--chart-3)", width: 1.6 },
 ] as const;
+
+function ChartTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-xl border border-white/10 bg-popover/90 px-3 py-2 text-xs shadow-lg backdrop-blur-xl">
+      <p className="mb-1 font-bold text-popover-foreground">{label}</p>
+      {payload
+        .filter((p: any) => p.value !== null && p.value !== undefined)
+        .map((p: any) => (
+          <p key={p.name} className="flex items-center gap-2 text-muted-foreground">
+            <span
+              className="inline-block h-2 w-2 rounded-full"
+              style={{ background: p.color }}
+            />
+            {p.name}
+            <span className="ml-auto font-semibold text-popover-foreground">
+              {p.value}%
+            </span>
+          </p>
+        ))}
+    </div>
+  );
+}
 
 export function TrendChart() {
   const { tasks, completions } = useFlux();
@@ -35,6 +60,14 @@ export function TrendChart() {
     [series],
   );
 
+  const average = useMemo(() => {
+    const vals = data
+      .map((d) => d.overall)
+      .filter((v): v is number => typeof v === "number");
+    if (!vals.length) return null;
+    return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+  }, [data]);
+
   const scores = useMemo(
     () => ({
       sprint: categoryEfficiency(series, "sprint"),
@@ -46,34 +79,49 @@ export function TrendChart() {
 
   return (
     <div className="space-y-4">
-      <div className="h-52 w-full">
+      <div className="h-60 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 10, right: 8, left: -22, bottom: 0 }}>
+          <LineChart data={data} margin={{ top: 12, right: 14, left: -18, bottom: 0 }}>
+            <CartesianGrid
+              vertical={false}
+              stroke="var(--border)"
+              strokeOpacity={0.5}
+              strokeDasharray="3 5"
+            />
             <XAxis
               dataKey="label"
               tick={{ fill: "var(--muted-foreground)", fontSize: 10 }}
               tickLine={false}
               axisLine={false}
-              interval={2}
+              interval="preserveStartEnd"
+              minTickGap={12}
             />
             <YAxis
               domain={[0, 100]}
+              ticks={[0, 25, 50, 75, 100]}
               tick={{ fill: "var(--muted-foreground)", fontSize: 10 }}
               tickLine={false}
               axisLine={false}
               tickFormatter={(v) => `${v}%`}
             />
             <Tooltip
-              cursor={{ stroke: "var(--primary)", strokeWidth: 1 }}
-              contentStyle={{
-                background: "var(--popover)",
-                border: "1px solid var(--border)",
-                borderRadius: 12,
-                fontSize: 12,
-                color: "var(--popover-foreground)",
-              }}
-              formatter={(v: number, name) => [`${v}%`, name]}
+              cursor={{ stroke: "var(--primary)", strokeWidth: 1, strokeDasharray: "4 4" }}
+              content={<ChartTooltip />}
             />
+            {average !== null && (
+              <ReferenceLine
+                y={average}
+                stroke="var(--primary)"
+                strokeOpacity={0.55}
+                strokeDasharray="6 6"
+                label={{
+                  value: `avg ${average}%`,
+                  position: "insideTopRight",
+                  fill: "var(--muted-foreground)",
+                  fontSize: 10,
+                }}
+              />
+            )}
             {CATS.map((c) => (
               <Line
                 key={c.key}
@@ -82,8 +130,8 @@ export function TrendChart() {
                 name={c.label}
                 stroke={c.color}
                 strokeWidth={c.width}
-                dot={false}
-                activeDot={{ r: 4 }}
+                dot={{ r: 3, fill: "var(--card)", stroke: c.color, strokeWidth: 2 }}
+                activeDot={{ r: 5, strokeWidth: 2, stroke: "var(--card)" }}
                 connectNulls
                 isAnimationActive
               />
