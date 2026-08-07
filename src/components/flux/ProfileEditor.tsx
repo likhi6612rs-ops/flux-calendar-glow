@@ -8,8 +8,10 @@ import { cn } from "@/lib/utils";
 import { Avatar } from "./Avatar";
 import { AVATAR_PRESETS, PRESET_PREFIX, presetFor } from "./avatar-presets";
 
-const MAX_BYTES = 2 * 1024 * 1024; // 2MB
-const ACCEPT = "image/png, image/jpeg, image/webp";
+const MAX_BYTES = 5 * 1024 * 1024; // 5MB
+// Broad accept so mobile shows Camera + Gallery; validated again on select.
+const ACCEPT = "image/*";
+const ALLOWED = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif", "image/heic", "image/heif"];
 
 export function ProfileEditor() {
   const { user } = useAuth();
@@ -19,6 +21,7 @@ export function ProfileEditor() {
   const [fullName, setFullName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const [localPreview, setLocalPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
