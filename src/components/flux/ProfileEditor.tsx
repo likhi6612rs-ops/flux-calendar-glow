@@ -8,8 +8,10 @@ import { cn } from "@/lib/utils";
 import { Avatar } from "./Avatar";
 import { AVATAR_PRESETS, PRESET_PREFIX, presetFor } from "./avatar-presets";
 
-const MAX_BYTES = 2 * 1024 * 1024; // 2MB
-const ACCEPT = "image/png, image/jpeg, image/webp";
+const MAX_BYTES = 5 * 1024 * 1024; // 5MB
+// Broad accept so mobile shows Camera + Gallery; validated again on select.
+const ACCEPT = "image/*";
+const ALLOWED = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif", "image/heic", "image/heif"];
 
 export function ProfileEditor() {
   const { user } = useAuth();
@@ -19,6 +21,7 @@ export function ProfileEditor() {
   const [fullName, setFullName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const [localPreview, setLocalPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
@@ -99,6 +102,7 @@ export function ProfileEditor() {
   const setPreset = async (id: string) => {
     if (!user) return;
     const value = `${PRESET_PREFIX}${id}`;
+    setLocalPreview(null);
     setAvatarUrl(value);
     const { error } = await supabase
       .from("profiles")
@@ -109,19 +113,47 @@ export function ProfileEditor() {
 
   const onUpload = async (file: File) => {
     if (!user) return;
-    if (file.size > MAX_BYTES) {
-      toast.error("Image must be under 2 MB.");
+
+    const type = (file.type || "").toLowerCase();
+    const extGuess = file.name.split(".").pop()?.toLowerCase() || "";
+    const looksImage =
+      type.startsWith("image/") ||
+      ["png", "jpg", "jpeg", "webp", "gif", "heic", "heif"].includes(extGuess);
+    if (!looksImage || (type && !ALLOWED.includes(type) && !type.startsWith("image/"))) {
+      toast.error("Unsupported file. Pick a PNG, JPG, WEBP or HEIC image.");
       return;
     }
+    if (file.size > MAX_BYTES) {
+      toast.error("Image must be under 5 MB.");
+      return;
+    }
+
+    // Instant optimistic preview from device storage.
+    const preview = URL.createObjectURL(file);
+    setLocalPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return preview;
+    });
+
     setUploading(true);
-    const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+    const ext = extGuess || (type.split("/")[1] ?? "png");
     const path = `${user.id}/avatar-${Date.now()}.${ext}`;
     const { error: upErr } = await supabase.storage
       .from("avatars")
-      .upload(path, file, { upsert: true, contentType: file.type });
+      .upload(path, file, {
+        upsert: true,
+        contentType: type || "image/png",
+        cacheControl: "3600",
+      });
     if (upErr) {
       setUploading(false);
-      toast.error("Upload failed.");
+      setLocalPreview(null);
+      URL.revokeObjectURL(preview);
+      toast.error(
+        upErr.message?.toLowerCase().includes("policy")
+          ? "You don't have permission to upload right now."
+          : "Upload failed. Check your connection and try again.",
+      );
       return;
     }
     const { error: dbErr } = await supabase
@@ -134,8 +166,14 @@ export function ProfileEditor() {
       return;
     }
     setAvatarUrl(path);
+    refreshProfile();
     toast.success("Profile photo updated.");
   };
+
+  // Clean up the last object URL when the editor unmounts.
+  useEffect(() => () => {
+    if (localPreview) URL.revokeObjectURL(localPreview);
+  }, [localPreview]);
 
   const initialsName = displayName || fullName || user?.email;
   const activePreset = presetFor(avatarUrl);
@@ -149,9 +187,10 @@ export function ProfileEditor() {
             <Avatar
               name={initialsName}
               email={user?.email}
-              url={activePreset ? avatarUrl : signedUrl}
+              url={localPreview ?? (activePreset ? avatarUrl : signedUrl)}
               size="xl"
             />
+
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
