@@ -24,8 +24,6 @@ import { FocusPane } from "./FocusPane";
 import { InsightsView } from "./InsightsView";
 import { SettingsPanel } from "./SettingsPanel";
 import { PWAInstallPrompt } from "./PWAInstallPrompt";
-import { UpdateBanner } from "./UpdateBanner";
-import { FeatureUpdateBanner } from "./FeatureUpdateBanner";
 import { PaywallModal } from "./PaywallModal";
 import { cn } from "@/lib/utils";
 
