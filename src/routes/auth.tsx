@@ -6,6 +6,7 @@ import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { useAuth } from "@/lib/auth";
+import { GradientBackground } from "@/components/ui/oceanic-depths";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({

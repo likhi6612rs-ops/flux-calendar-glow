@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as GradientDemoRouteImport } from './routes/gradient-demo'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
@@ -20,6 +21,11 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GradientDemoRoute = GradientDemoRouteImport.update({
+  id: '/gradient-demo',
+  path: '/gradient-demo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -55,6 +61,7 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
+  '/gradient-demo': typeof GradientDemoRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/focus': typeof AuthenticatedFocusRoute
@@ -62,6 +69,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
+  '/gradient-demo': typeof GradientDemoRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/focus': typeof AuthenticatedFocusRoute
@@ -72,6 +80,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/gradient-demo': typeof GradientDemoRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/focus': typeof AuthenticatedFocusRoute
@@ -80,13 +89,28 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/sitemap.xml' | '/admin' | '/focus' | '/settings'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/gradient-demo'
+    | '/sitemap.xml'
+    | '/admin'
+    | '/focus'
+    | '/settings'
   fileRoutesByTo: FileRoutesByTo
-  to: '/auth' | '/sitemap.xml' | '/admin' | '/focus' | '/settings' | '/'
+  to:
+    | '/auth'
+    | '/gradient-demo'
+    | '/sitemap.xml'
+    | '/admin'
+    | '/focus'
+    | '/settings'
+    | '/'
   id:
     | '__root__'
     | '/_authenticated'
     | '/auth'
+    | '/gradient-demo'
     | '/sitemap.xml'
     | '/_authenticated/admin'
     | '/_authenticated/focus'
@@ -97,6 +121,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  GradientDemoRoute: typeof GradientDemoRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
 }
 
@@ -107,6 +132,13 @@ declare module '@tanstack/react-router' {
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gradient-demo': {
+      id: '/gradient-demo'
+      path: '/gradient-demo'
+      fullPath: '/gradient-demo'
+      preLoaderRoute: typeof GradientDemoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -174,6 +206,7 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  GradientDemoRoute: GradientDemoRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
 }
 export const routeTree = rootRouteImport
