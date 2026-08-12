@@ -320,8 +320,6 @@ export function FluxApp() {
 
       <PaywallModal />
       <PWAInstallPrompt />
-      <UpdateBanner />
-      <FeatureUpdateBanner />
     </div>
   );
 }
