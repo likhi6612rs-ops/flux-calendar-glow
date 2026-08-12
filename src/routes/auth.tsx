@@ -146,11 +146,12 @@ function AuthPage() {
 
   if (sentTo) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-5 py-10">
+      <div className="relative flex min-h-screen items-center justify-center bg-background/60 px-5 py-10">
+        <GradientBackground />
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-sm text-center"
+          className="relative z-10 w-full max-w-sm text-center"
         >
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary-glow shadow-glow">
             <MailCheck className="h-7 w-7 text-primary-foreground" />
