@@ -180,11 +180,12 @@ function AuthPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-5 py-10">
+    <div className="relative flex min-h-screen items-center justify-center bg-background/60 px-5 py-10">
+      <GradientBackground />
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-sm"
+        className="relative z-10 w-full max-w-sm"
       >
         <div className="mb-8 text-center">
           <p className="text-xs font-medium uppercase tracking-[0.3em] text-primary-glow">
