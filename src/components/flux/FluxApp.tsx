@@ -10,6 +10,7 @@ import {
   PanelRightClose,
   PanelRightOpen,
   Settings as SettingsIcon,
+  NotebookPen,
 } from "lucide-react";
 import { useFlux } from "@/lib/flux-store";
 import { usePremium, tierLabel } from "@/lib/premium";
@@ -23,14 +24,21 @@ import { TaskList } from "./TaskList";
 import { FocusPane } from "./FocusPane";
 import { InsightsView } from "./InsightsView";
 import { SettingsPanel } from "./SettingsPanel";
+import { Remembrance } from "./Remembrance";
 import { PWAInstallPrompt } from "./PWAInstallPrompt";
 import { PaywallModal } from "./PaywallModal";
 import { cn } from "@/lib/utils";
 
-type ModuleId = "calendar" | "focus" | "insights";
+type ModuleId = "calendar" | "focus" | "insights" | "remembrance";
 
-const NAV: { id: ModuleId; label: string; icon: typeof CalendarDays }[] = [
+const NAV: {
+  id: ModuleId;
+  label: string;
+  short?: string;
+  icon: typeof CalendarDays;
+}[] = [
   { id: "calendar", label: "Calendar", icon: CalendarDays },
+  { id: "remembrance", label: "Remembrance", short: "Notes", icon: NotebookPen },
   { id: "focus", label: "Focus", icon: Timer },
   { id: "insights", label: "Insights", icon: LineChart },
 ];
@@ -71,6 +79,7 @@ function CenterModule({ id }: { id: ModuleId }) {
         )}
       </div>
     );
+  if (id === "remembrance") return <Remembrance />;
   if (id === "focus") return <FocusPane />;
   return <InsightsView />;
 }
@@ -296,7 +305,7 @@ export function FluxApp() {
                       <Crown className="absolute -right-2 -top-1 h-2.5 w-2.5 text-amber-300" />
                     )}
                   </span>
-                  {item.label}
+                  {item.short ?? item.label}
                   {on && (
                     <motion.span
                       layoutId="navdot"

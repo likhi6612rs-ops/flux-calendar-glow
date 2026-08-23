@@ -118,6 +118,45 @@ export type Database = {
         }
         Relationships: []
       }
+      notes: {
+        Row: {
+          category: string
+          content: string
+          created_at: string
+          id: string
+          note_date: string | null
+          pinned: boolean
+          title: string
+          updated_at: string
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          content?: string
+          created_at?: string
+          id?: string
+          note_date?: string | null
+          pinned?: boolean
+          title?: string
+          updated_at?: string
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string
+          id?: string
+          note_date?: string | null
+          pinned?: boolean
+          title?: string
+          updated_at?: string
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
