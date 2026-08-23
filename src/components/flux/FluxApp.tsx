@@ -31,9 +31,14 @@ import { cn } from "@/lib/utils";
 
 type ModuleId = "calendar" | "focus" | "insights" | "remembrance";
 
-const NAV: { id: ModuleId; label: string; icon: typeof CalendarDays }[] = [
+const NAV: {
+  id: ModuleId;
+  label: string;
+  short?: string;
+  icon: typeof CalendarDays;
+}[] = [
   { id: "calendar", label: "Calendar", icon: CalendarDays },
-  { id: "remembrance", label: "Remembrance", icon: NotebookPen },
+  { id: "remembrance", label: "Remembrance", short: "Notes", icon: NotebookPen },
   { id: "focus", label: "Focus", icon: Timer },
   { id: "insights", label: "Insights", icon: LineChart },
 ];
@@ -300,7 +305,7 @@ export function FluxApp() {
                       <Crown className="absolute -right-2 -top-1 h-2.5 w-2.5 text-amber-300" />
                     )}
                   </span>
-                  {item.label}
+                  {item.short ?? item.label}
                   {on && (
                     <motion.span
                       layoutId="navdot"

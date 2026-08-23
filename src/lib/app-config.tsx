@@ -20,6 +20,7 @@ export interface AppFeatures {
   tasks: boolean;
   focus: boolean;
   insights: boolean;
+  remembrance: boolean;
   promo: boolean;
   promo_text: string;
 }
@@ -29,6 +30,7 @@ export const DEFAULT_FEATURES: AppFeatures = {
   tasks: true,
   focus: true,
   insights: true,
+  remembrance: true,
   promo: false,
   promo_text: "",
 };
