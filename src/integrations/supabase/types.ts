@@ -118,6 +118,44 @@ export type Database = {
         }
         Relationships: []
       }
+      note_category_corrections: {
+        Row: {
+          created_at: string
+          from_category: string
+          id: string
+          note_id: string | null
+          note_text: string
+          to_category: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          from_category: string
+          id?: string
+          note_id?: string | null
+          note_text: string
+          to_category: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          from_category?: string
+          id?: string
+          note_id?: string | null
+          note_text?: string
+          to_category?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_category_corrections_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notes: {
         Row: {
           category: string
