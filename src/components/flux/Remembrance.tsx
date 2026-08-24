@@ -1,18 +1,23 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useServerFn } from "@tanstack/react-start";
 import {
   ArrowLeft,
   CalendarDays,
+  Check,
   Folder,
+  FolderPlus,
   Link as LinkIcon,
   Loader2,
   Plus,
   Search,
+  Share2,
   Sparkles,
   Trash2,
   FileText,
+  FolderInput,
   Shuffle,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
@@ -33,7 +38,6 @@ interface Note {
 }
 
 const CATEGORIES = ["Study", "Coursework", "Ideas", "Personal"] as const;
-type Category = (typeof CATEGORIES)[number];
 
 const FOLDER_TONE: Record<string, string> = {
   Study: "text-sky-300",
@@ -44,6 +48,7 @@ const FOLDER_TONE: Record<string, string> = {
 };
 
 const URL_RE = /https?:\/\/[^\s]+/i;
+const CUSTOM_FOLDERS_KEY = "flux-remembrance-folders";
 
 export function Remembrance() {
   const { user } = useAuth();
@@ -57,6 +62,34 @@ export function Remembrance() {
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState("");
   const [folder, setFolder] = useState<string | null>(null);
+  const [customFolders, setCustomFolders] = useState<string[]>([]);
+
+  /* ---------- long-press context menu ---------- */
+  const [menuNote, setMenuNote] = useState<Note | null>(null);
+  const [menuMode, setMenuMode] = useState<"actions" | "move" | "new">(
+    "actions",
+  );
+  const [newFolder, setNewFolder] = useState("");
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressed = useRef(false);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(CUSTOM_FOLDERS_KEY);
+      if (raw) setCustomFolders(JSON.parse(raw) as string[]);
+    } catch {
+      /* ignore malformed cache */
+    }
+  }, []);
+
+  const persistFolders = (next: string[]) => {
+    setCustomFolders(next);
+    try {
+      localStorage.setItem(CUSTOM_FOLDERS_KEY, JSON.stringify(next));
+    } catch {
+      /* storage may be unavailable */
+    }
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -67,7 +100,7 @@ export function Remembrance() {
         .select("id, title, content, url, note_date, category, created_at")
         .order("created_at", { ascending: false });
       if (cancelled) return;
-      if (error) toast.error("Could not load your notes.");
+      if (error) toast.error("Could not load your Remembrance vault.");
       setNotes((data ?? []) as Note[]);
       setLoading(false);
     })();
@@ -76,6 +109,13 @@ export function Remembrance() {
     };
   }, [user]);
 
+  const allFolders = useMemo(() => {
+    const set = new Set<string>(CATEGORIES);
+    customFolders.forEach((f) => set.add(f));
+    notes.forEach((n) => set.add(n.category));
+    return Array.from(set);
+  }, [customFolders, notes]);
+
   const save = async () => {
     const text = draft.trim();
     if (!text || !user || saving) return;
@@ -83,7 +123,7 @@ export function Remembrance() {
     let category: string = "Ideas";
     let title = text.split("\n")[0].slice(0, 60);
     try {
-      const result = await classify({ data: { text } });
+      const result = await classify({ data: { text, folders: allFolders } });
       category = result.category;
       title = result.title || title;
     } catch {
@@ -104,7 +144,7 @@ export function Remembrance() {
       .single();
     setSaving(false);
     if (error || !data) {
-      toast.error("Could not save that note.");
+      toast.error("Could not save to your Remembrance vault.");
       return;
     }
     setNotes((prev) => [data as Note, ...prev]);
@@ -114,18 +154,91 @@ export function Remembrance() {
 
   const remove = async (id: string) => {
     setNotes((prev) => prev.filter((n) => n.id !== id));
+    setMenuNote(null);
     await supabase.from("notes").delete().eq("id", id);
+  };
+
+  /** Moves a note and records the correction so the AI learns the preference. */
+  const moveNote = async (note: Note, target: string) => {
+    const to = target.trim();
+    if (!to || !user || to === note.category) {
+      setMenuNote(null);
+      return;
+    }
+    const from = note.category;
+    setNotes((prev) =>
+      prev.map((n) => (n.id === note.id ? { ...n, category: to } : n)),
+    );
+    setMenuNote(null);
+    setNewFolder("");
+
+    const { error } = await supabase
+      .from("notes")
+      .update({ category: to })
+      .eq("id", note.id);
+    if (error) {
+      setNotes((prev) =>
+        prev.map((n) => (n.id === note.id ? { ...n, category: from } : n)),
+      );
+      toast.error("Could not move that memory.");
+      return;
+    }
+
+    await supabase.from("note_category_corrections").insert({
+      user_id: user.id,
+      note_id: note.id,
+      note_text: note.content.slice(0, 500),
+      from_category: from,
+      to_category: to,
+    });
+
+    toast.success(`Moved to ${to}`, {
+      description: "Remembrance learned your filing preference.",
+    });
+  };
+
+  const shareNote = async (note: Note) => {
+    const text = [note.title, note.content, note.url].filter(Boolean).join("\n");
+    setMenuNote(null);
+    try {
+      if (typeof navigator !== "undefined" && navigator.share) {
+        await navigator.share({ title: note.title, text });
+        return;
+      }
+      await navigator.clipboard.writeText(text);
+      toast.success("Copied to clipboard");
+    } catch {
+      /* user dismissed the share sheet */
+    }
+  };
+
+  const openMenu = (note: Note) => {
+    setMenuNote(note);
+    setMenuMode("actions");
+    setNewFolder("");
+  };
+
+  const startPress = (note: Note) => {
+    longPressed.current = false;
+    pressTimer.current = setTimeout(() => {
+      longPressed.current = true;
+      openMenu(note);
+    }, 450);
+  };
+  const endPress = () => {
+    if (pressTimer.current) clearTimeout(pressTimer.current);
+    pressTimer.current = null;
   };
 
   const counts = useMemo(() => {
     const map: Record<string, number> = { Dated: 0 };
-    CATEGORIES.forEach((c) => (map[c] = 0));
+    allFolders.forEach((c) => (map[c] = 0));
     notes.forEach((n) => {
       map[n.category] = (map[n.category] ?? 0) + 1;
       if (n.note_date) map.Dated += 1;
     });
     return map;
-  }, [notes]);
+  }, [notes, allFolders]);
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -147,7 +260,7 @@ export function Remembrance() {
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           rows={3}
-          placeholder="Jot an idea, a link, a reminder…"
+          placeholder="Remember an idea, a link, a moment…"
           className="w-full resize-none bg-transparent text-sm leading-relaxed text-foreground placeholder:text-muted-foreground/70 focus:outline-none"
         />
         <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-white/5 pt-3">
@@ -168,7 +281,7 @@ export function Remembrance() {
             )}
             {attachDate
               ? format(parseISO(selectedDate), "d MMM yyyy")
-              : "Random note"}
+              : "Unbound memory"}
           </button>
           <span className="flex items-center gap-1 text-[11px] text-muted-foreground/70">
             <Sparkles className="h-3 w-3 text-primary-glow" /> Auto-sorted
@@ -184,7 +297,7 @@ export function Remembrance() {
             ) : (
               <Plus className="h-3.5 w-3.5" />
             )}
-            Save
+            Remember
           </button>
         </div>
       </div>
@@ -195,12 +308,12 @@ export function Remembrance() {
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search your drive"
+          placeholder="Search your Remembrance vault"
           className="w-full bg-transparent text-sm placeholder:text-muted-foreground/70 focus:outline-none"
         />
       </div>
 
-      {/* ---------- Drive ---------- */}
+      {/* ---------- Vault ---------- */}
       {loading ? (
         <div className="flex justify-center py-10 text-muted-foreground">
           <Loader2 className="h-5 w-5 animate-spin" />
@@ -216,14 +329,17 @@ export function Remembrance() {
               transition={{ duration: 0.18 }}
               className="grid grid-cols-2 gap-3"
             >
-              {[...CATEGORIES, "Dated"].map((name) => (
+              {[...allFolders, "Dated"].map((name) => (
                 <button
                   key={name}
                   onClick={() => setFolder(name)}
                   className="group flex items-center gap-3 rounded-2xl border border-white/10 bg-card/40 p-4 text-left backdrop-blur-sm transition-all hover:border-primary/40 active:scale-[0.98]"
                 >
                   <Folder
-                    className={cn("h-6 w-6 shrink-0", FOLDER_TONE[name])}
+                    className={cn(
+                      "h-6 w-6 shrink-0",
+                      FOLDER_TONE[name] ?? "text-primary-glow",
+                    )}
                   />
                   <div className="min-w-0">
                     <p className="truncate text-sm font-bold">{name}</p>
@@ -260,19 +376,27 @@ export function Remembrance() {
 
               {visible.length === 0 && (
                 <p className="rounded-2xl border border-dashed border-white/10 py-10 text-center text-sm text-muted-foreground">
-                  Nothing filed here yet.
+                  Nothing remembered here yet.
                 </p>
               )}
 
               {visible.map((note) => (
                 <div
                   key={note.id}
-                  className="group flex items-start gap-3 rounded-2xl border border-white/10 bg-card/40 p-4 backdrop-blur-sm transition-colors hover:border-primary/30"
+                  onPointerDown={() => startPress(note)}
+                  onPointerUp={endPress}
+                  onPointerLeave={endPress}
+                  onPointerCancel={endPress}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    openMenu(note);
+                  }}
+                  className="group flex select-none items-start gap-3 rounded-2xl border border-white/10 bg-card/40 p-4 backdrop-blur-sm transition-colors hover:border-primary/30 active:border-primary/50"
                 >
                   <FileText
                     className={cn(
                       "mt-0.5 h-4 w-4 shrink-0",
-                      FOLDER_TONE[note.category] ?? "text-muted-foreground",
+                      FOLDER_TONE[note.category] ?? "text-primary-glow",
                     )}
                   />
                   <div className="min-w-0 flex-1">
@@ -291,7 +415,7 @@ export function Remembrance() {
                         </span>
                       ) : (
                         <span className="flex items-center gap-1">
-                          <Shuffle className="h-3 w-3" /> Random
+                          <Shuffle className="h-3 w-3" /> Unbound
                         </span>
                       )}
                       {note.url && (
@@ -307,11 +431,12 @@ export function Remembrance() {
                     </div>
                   </div>
                   <button
-                    onClick={() => remove(note.id)}
-                    aria-label="Delete note"
-                    className="rounded-lg p-1.5 text-muted-foreground/60 transition-colors hover:bg-destructive/10 hover:text-destructive"
+                    onClick={() => openMenu(note)}
+                    aria-label="Note actions"
+                    title="Long-press for actions"
+                    className="rounded-lg p-1.5 text-muted-foreground/60 transition-colors hover:bg-primary/10 hover:text-primary-glow"
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <FolderInput className="h-3.5 w-3.5" />
                   </button>
                 </div>
               ))}
@@ -319,6 +444,144 @@ export function Remembrance() {
           )}
         </AnimatePresence>
       )}
+
+      {/* ---------- Long-press action sheet ---------- */}
+      <AnimatePresence>
+        {menuNote && (
+          <motion.div
+            key="sheet"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end justify-center bg-background/70 backdrop-blur-sm sm:items-center"
+            onClick={() => setMenuNote(null)}
+          >
+            <motion.div
+              initial={{ y: 40, opacity: 0, scale: 0.98 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
+              exit={{ y: 40, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 320, damping: 30 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md rounded-t-3xl border border-white/10 bg-card/90 p-5 backdrop-blur-xl sm:rounded-3xl"
+            >
+              <div className="flex items-start gap-3 border-b border-white/5 pb-4">
+                <FileText className="mt-0.5 h-4 w-4 shrink-0 text-primary-glow" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-bold">{menuNote.title}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    In {menuNote.category}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setMenuNote(null)}
+                  aria-label="Close"
+                  className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {menuMode === "actions" && (
+                <div className="mt-3 space-y-1">
+                  <SheetAction
+                    icon={FolderInput}
+                    label="Move to another folder"
+                    onClick={() => setMenuMode("move")}
+                  />
+                  <SheetAction
+                    icon={FolderPlus}
+                    label="Create a new folder and add to it"
+                    onClick={() => setMenuMode("new")}
+                  />
+                  <SheetAction
+                    icon={Share2}
+                    label="Share / export"
+                    onClick={() => shareNote(menuNote)}
+                  />
+                  <SheetAction
+                    icon={Trash2}
+                    label="Delete memory"
+                    tone="danger"
+                    onClick={() => remove(menuNote.id)}
+                  />
+                </div>
+              )}
+
+              {menuMode === "move" && (
+                <div className="mt-3 space-y-1">
+                  {allFolders
+                    .filter((f) => f !== menuNote.category)
+                    .map((f) => (
+                      <SheetAction
+                        key={f}
+                        icon={Folder}
+                        label={f}
+                        onClick={() => moveNote(menuNote, f)}
+                      />
+                    ))}
+                  <p className="pt-2 text-[11px] text-muted-foreground">
+                    Moving a memory teaches the auto-sorter your preference.
+                  </p>
+                </div>
+              )}
+
+              {menuMode === "new" && (
+                <div className="mt-4 space-y-3">
+                  <input
+                    autoFocus
+                    value={newFolder}
+                    onChange={(e) => setNewFolder(e.target.value)}
+                    maxLength={40}
+                    placeholder="New folder name"
+                    className="w-full rounded-xl border border-white/10 bg-background/50 px-3.5 py-2.5 text-sm focus:border-primary/50 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    disabled={!newFolder.trim()}
+                    onClick={() => {
+                      const name = newFolder.trim();
+                      if (!allFolders.includes(name))
+                        persistFolders([...customFolders, name]);
+                      void moveNote(menuNote, name);
+                    }}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-40"
+                  >
+                    <Check className="h-4 w-4" /> Create & move here
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
+  );
+}
+
+function SheetAction({
+  icon: Icon,
+  label,
+  onClick,
+  tone,
+}: {
+  icon: typeof Folder;
+  label: string;
+  onClick: () => void;
+  tone?: "danger";
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold transition-colors",
+        tone === "danger"
+          ? "text-destructive hover:bg-destructive/10"
+          : "text-foreground hover:bg-primary/10",
+      )}
+    >
+      <Icon className="h-4 w-4 shrink-0" />
+      {label}
+    </button>
   );
 }
