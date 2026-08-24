@@ -38,7 +38,7 @@ const NAV: {
   icon: typeof CalendarDays;
 }[] = [
   { id: "calendar", label: "Calendar", icon: CalendarDays },
-  { id: "remembrance", label: "Remembrance", short: "Notes", icon: NotebookPen },
+  { id: "remembrance", label: "Remembrance", icon: NotebookPen },
   { id: "focus", label: "Focus", icon: Timer },
   { id: "insights", label: "Insights", icon: LineChart },
 ];
