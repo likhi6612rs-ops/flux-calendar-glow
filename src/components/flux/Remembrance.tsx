@@ -328,9 +328,23 @@ export function Remembrance() {
               ? format(parseISO(selectedDate), "d MMM yyyy")
               : "Unbound memory"}
           </button>
-          <span className="flex items-center gap-1 text-[11px] text-muted-foreground/70">
-            <Sparkles className="h-3 w-3 text-primary-glow" /> Auto-sorted
-          </span>
+          <div className="flex items-center gap-1.5 rounded-full border border-white/10 px-3 py-1.5 text-[11px] font-semibold text-muted-foreground">
+            <Sparkles className="h-3 w-3 text-primary-glow" />
+            <select
+              value={draftFolder}
+              onChange={(e) => setDraftFolder(e.target.value)}
+              aria-label="File this memory in"
+              className="bg-transparent text-[11px] font-semibold text-foreground focus:outline-none"
+            >
+              <option value="auto">Auto-sort</option>
+              {allFolders.map((f) => (
+                <option key={f} value={f}>
+                  {f}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <button
             type="button"
             onClick={save}
