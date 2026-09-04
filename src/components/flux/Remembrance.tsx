@@ -632,8 +632,98 @@ export function Remembrance() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ---------- Create folder modal ---------- */}
+      <AnimatePresence>
+        {creating && (
+          <motion.div
+            key="create-folder"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end justify-center bg-background/70 backdrop-blur-sm sm:items-center"
+            onClick={() => setCreating(false)}
+          >
+            <motion.div
+              initial={{ y: 40, opacity: 0, scale: 0.98 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
+              exit={{ y: 40, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 320, damping: 30 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md rounded-t-3xl border border-white/10 bg-card/90 p-5 backdrop-blur-xl sm:rounded-3xl"
+            >
+              <div className="flex items-center gap-3 border-b border-white/5 pb-4">
+                <FolderPlus className="h-4 w-4 text-primary-glow" />
+                <p className="flex-1 text-sm font-bold">New folder</p>
+                <button
+                  onClick={() => setCreating(false)}
+                  aria-label="Close"
+                  className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="mt-4 space-y-4">
+                <input
+                  autoFocus
+                  value={createName}
+                  onChange={(e) => setCreateName(e.target.value)}
+                  maxLength={40}
+                  placeholder="Folder name"
+                  className="w-full rounded-xl border border-white/10 bg-background/50 px-3.5 py-2.5 text-sm focus:border-primary/50 focus:outline-none"
+                />
+
+                <div>
+                  <p className="mb-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                    Folder colour
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {FOLDER_COLORS.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        aria-label={c.label}
+                        onClick={() => setCreateColor(c.id)}
+                        className={cn(
+                          "flex h-11 w-11 items-center justify-center rounded-xl border transition-all",
+                          createColor === c.id
+                            ? "border-primary/60 bg-primary/15 scale-105"
+                            : "border-white/10 bg-background/40 hover:border-white/25",
+                        )}
+                      >
+                        <Folder className={cn("h-5 w-5", c.tone)} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={!createName.trim()}
+                  onClick={() => {
+                    const name = createName.trim();
+                    if (allFolders.includes(name)) {
+                      toast.error("That folder already exists.");
+                      return;
+                    }
+                    addFolder(name, createColor);
+                    setCreating(false);
+                    setFolder(name);
+                    toast.success(`Folder "${name}" created`);
+                  }}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-40"
+                >
+                  <Check className="h-4 w-4" /> Create folder
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
+
 }
 
 function SheetAction({
