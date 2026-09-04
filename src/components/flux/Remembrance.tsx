@@ -473,9 +473,10 @@ export function Remembrance() {
                   <FileText
                     className={cn(
                       "mt-0.5 h-4 w-4 shrink-0",
-                      FOLDER_TONE[note.category] ?? "text-primary-glow",
+                      toneFor(note.category),
                     )}
                   />
+
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-bold">{note.title}</p>
                     <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
