@@ -50,6 +50,20 @@ const FOLDER_TONE: Record<string, string> = {
 const URL_RE = /https?:\/\/[^\s]+/i;
 const CUSTOM_FOLDERS_KEY = "flux-remembrance-folders";
 
+const FOLDER_COLORS = [
+  { id: "lavender", label: "Lavender", tone: "text-primary-glow" },
+  { id: "sky", label: "Sky", tone: "text-sky-300" },
+  { id: "emerald", label: "Emerald", tone: "text-emerald-300" },
+  { id: "amber", label: "Amber", tone: "text-amber-300" },
+  { id: "rose", label: "Rose", tone: "text-rose-300" },
+  { id: "violet", label: "Violet", tone: "text-violet-300" },
+] as const;
+
+interface CustomFolder {
+  name: string;
+  color: string;
+}
+
 export function Remembrance() {
   const { user } = useAuth();
   const { selectedDate } = useFlux();
@@ -62,7 +76,13 @@ export function Remembrance() {
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState("");
   const [folder, setFolder] = useState<string | null>(null);
-  const [customFolders, setCustomFolders] = useState<string[]>([]);
+  const [customFolders, setCustomFolders] = useState<CustomFolder[]>([]);
+  const [draftFolder, setDraftFolder] = useState<string>("auto");
+
+  /* ---------- create-folder modal ---------- */
+  const [creating, setCreating] = useState(false);
+  const [createName, setCreateName] = useState("");
+  const [createColor, setCreateColor] = useState<string>("lavender");
 
   /* ---------- long-press context menu ---------- */
   const [menuNote, setMenuNote] = useState<Note | null>(null);
@@ -76,13 +96,19 @@ export function Remembrance() {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(CUSTOM_FOLDERS_KEY);
-      if (raw) setCustomFolders(JSON.parse(raw) as string[]);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as (string | CustomFolder)[];
+      setCustomFolders(
+        parsed.map((f) =>
+          typeof f === "string" ? { name: f, color: "lavender" } : f,
+        ),
+      );
     } catch {
       /* ignore malformed cache */
     }
   }, []);
 
-  const persistFolders = (next: string[]) => {
+  const persistFolders = (next: CustomFolder[]) => {
     setCustomFolders(next);
     try {
       localStorage.setItem(CUSTOM_FOLDERS_KEY, JSON.stringify(next));
@@ -90,6 +116,22 @@ export function Remembrance() {
       /* storage may be unavailable */
     }
   };
+
+  const addFolder = (name: string, color = "lavender") => {
+    if (customFolders.some((f) => f.name === name)) return;
+    persistFolders([...customFolders, { name, color }]);
+  };
+
+  const toneFor = (name: string) => {
+    const custom = customFolders.find((f) => f.name === name);
+    if (custom)
+      return (
+        FOLDER_COLORS.find((c) => c.id === custom.color)?.tone ??
+        "text-primary-glow"
+      );
+    return FOLDER_TONE[name] ?? "text-primary-glow";
+  };
+
 
   useEffect(() => {
     if (!user) return;
