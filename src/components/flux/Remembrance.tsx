@@ -37,7 +37,15 @@ interface Note {
   created_at: string;
 }
 
-const CATEGORIES = ["Study", "Coursework", "Ideas", "Personal"] as const;
+const LINKS_FOLDER = "Links";
+
+const CATEGORIES = [
+  "Study",
+  "Coursework",
+  "Ideas",
+  "Personal",
+  LINKS_FOLDER,
+] as const;
 
 const FOLDER_TONE: Record<string, string> = {
   Study: "text-sky-300",
@@ -45,10 +53,18 @@ const FOLDER_TONE: Record<string, string> = {
   Ideas: "text-primary-glow",
   Personal: "text-emerald-300",
   Dated: "text-rose-300",
+  Links: "text-cyan-300",
 };
 
 const URL_RE = /https?:\/\/[^\s]+/i;
+const BARE_URL_RE = /^(https?:\/\/\S+|www\.\S+\.\S+)$/i;
 const CUSTOM_FOLDERS_KEY = "flux-remembrance-folders";
+
+/** Strips protocol/trailing slash so bookmarks read cleanly. */
+function prettyUrl(url: string) {
+  return url.replace(/^https?:\/\//i, "").replace(/\/$/, "");
+}
+
 
 const FOLDER_COLORS = [
   { id: "lavender", label: "Lavender", tone: "text-primary-glow" },
