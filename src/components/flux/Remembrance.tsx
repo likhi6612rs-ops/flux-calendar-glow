@@ -95,6 +95,13 @@ export function Remembrance() {
   const [customFolders, setCustomFolders] = useState<CustomFolder[]>([]);
   const [draftFolder, setDraftFolder] = useState<string>("auto");
 
+  /* ---------- link naming prompt ---------- */
+  const [linkUrl, setLinkUrl] = useState<string | null>(null);
+  const [linkName, setLinkName] = useState("");
+  const [savingLink, setSavingLink] = useState(false);
+
+
+
   /* ---------- create-folder modal ---------- */
   const [creating, setCreating] = useState(false);
   const [createName, setCreateName] = useState("");
