@@ -153,7 +153,7 @@ export function Remembrance() {
 
   const allFolders = useMemo(() => {
     const set = new Set<string>(CATEGORIES);
-    customFolders.forEach((f) => set.add(f));
+    customFolders.forEach((f) => set.add(f.name));
     notes.forEach((n) => set.add(n.category));
     return Array.from(set);
   }, [customFolders, notes]);
@@ -164,6 +164,7 @@ export function Remembrance() {
     setSaving(true);
     let category: string = "Ideas";
     let title = text.split("\n")[0].slice(0, 60);
+    const manual = draftFolder !== "auto";
     try {
       const result = await classify({ data: { text, folders: allFolders } });
       category = result.category;
@@ -171,7 +172,9 @@ export function Remembrance() {
     } catch {
       /* AI is best-effort; fall back to defaults */
     }
+    if (manual) category = draftFolder;
     const url = text.match(URL_RE)?.[0] ?? null;
+
     const { data, error } = await supabase
       .from("notes")
       .insert({
