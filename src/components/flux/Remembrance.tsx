@@ -50,6 +50,20 @@ const FOLDER_TONE: Record<string, string> = {
 const URL_RE = /https?:\/\/[^\s]+/i;
 const CUSTOM_FOLDERS_KEY = "flux-remembrance-folders";
 
+const FOLDER_COLORS = [
+  { id: "lavender", label: "Lavender", tone: "text-primary-glow" },
+  { id: "sky", label: "Sky", tone: "text-sky-300" },
+  { id: "emerald", label: "Emerald", tone: "text-emerald-300" },
+  { id: "amber", label: "Amber", tone: "text-amber-300" },
+  { id: "rose", label: "Rose", tone: "text-rose-300" },
+  { id: "violet", label: "Violet", tone: "text-violet-300" },
+] as const;
+
+interface CustomFolder {
+  name: string;
+  color: string;
+}
+
 export function Remembrance() {
   const { user } = useAuth();
   const { selectedDate } = useFlux();
@@ -62,7 +76,13 @@ export function Remembrance() {
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState("");
   const [folder, setFolder] = useState<string | null>(null);
-  const [customFolders, setCustomFolders] = useState<string[]>([]);
+  const [customFolders, setCustomFolders] = useState<CustomFolder[]>([]);
+  const [draftFolder, setDraftFolder] = useState<string>("auto");
+
+  /* ---------- create-folder modal ---------- */
+  const [creating, setCreating] = useState(false);
+  const [createName, setCreateName] = useState("");
+  const [createColor, setCreateColor] = useState<string>("lavender");
 
   /* ---------- long-press context menu ---------- */
   const [menuNote, setMenuNote] = useState<Note | null>(null);
@@ -76,13 +96,19 @@ export function Remembrance() {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(CUSTOM_FOLDERS_KEY);
-      if (raw) setCustomFolders(JSON.parse(raw) as string[]);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as (string | CustomFolder)[];
+      setCustomFolders(
+        parsed.map((f) =>
+          typeof f === "string" ? { name: f, color: "lavender" } : f,
+        ),
+      );
     } catch {
       /* ignore malformed cache */
     }
   }, []);
 
-  const persistFolders = (next: string[]) => {
+  const persistFolders = (next: CustomFolder[]) => {
     setCustomFolders(next);
     try {
       localStorage.setItem(CUSTOM_FOLDERS_KEY, JSON.stringify(next));
@@ -90,6 +116,22 @@ export function Remembrance() {
       /* storage may be unavailable */
     }
   };
+
+  const addFolder = (name: string, color = "lavender") => {
+    if (customFolders.some((f) => f.name === name)) return;
+    persistFolders([...customFolders, { name, color }]);
+  };
+
+  const toneFor = (name: string) => {
+    const custom = customFolders.find((f) => f.name === name);
+    if (custom)
+      return (
+        FOLDER_COLORS.find((c) => c.id === custom.color)?.tone ??
+        "text-primary-glow"
+      );
+    return FOLDER_TONE[name] ?? "text-primary-glow";
+  };
+
 
   useEffect(() => {
     if (!user) return;
@@ -111,7 +153,7 @@ export function Remembrance() {
 
   const allFolders = useMemo(() => {
     const set = new Set<string>(CATEGORIES);
-    customFolders.forEach((f) => set.add(f));
+    customFolders.forEach((f) => set.add(f.name));
     notes.forEach((n) => set.add(n.category));
     return Array.from(set);
   }, [customFolders, notes]);
@@ -122,6 +164,7 @@ export function Remembrance() {
     setSaving(true);
     let category: string = "Ideas";
     let title = text.split("\n")[0].slice(0, 60);
+    const manual = draftFolder !== "auto";
     try {
       const result = await classify({ data: { text, folders: allFolders } });
       category = result.category;
@@ -129,7 +172,9 @@ export function Remembrance() {
     } catch {
       /* AI is best-effort; fall back to defaults */
     }
+    if (manual) category = draftFolder;
     const url = text.match(URL_RE)?.[0] ?? null;
+
     const { data, error } = await supabase
       .from("notes")
       .insert({
@@ -283,9 +328,23 @@ export function Remembrance() {
               ? format(parseISO(selectedDate), "d MMM yyyy")
               : "Unbound memory"}
           </button>
-          <span className="flex items-center gap-1 text-[11px] text-muted-foreground/70">
-            <Sparkles className="h-3 w-3 text-primary-glow" /> Auto-sorted
-          </span>
+          <div className="flex items-center gap-1.5 rounded-full border border-white/10 px-3 py-1.5 text-[11px] font-semibold text-muted-foreground">
+            <Sparkles className="h-3 w-3 text-primary-glow" />
+            <select
+              value={draftFolder}
+              onChange={(e) => setDraftFolder(e.target.value)}
+              aria-label="File this memory in"
+              className="bg-transparent text-[11px] font-semibold text-foreground focus:outline-none"
+            >
+              <option value="auto">Auto-sort</option>
+              {allFolders.map((f) => (
+                <option key={f} value={f}>
+                  {f}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <button
             type="button"
             onClick={save}
@@ -336,10 +395,7 @@ export function Remembrance() {
                   className="group flex items-center gap-3 rounded-2xl border border-white/10 bg-card/40 p-4 text-left backdrop-blur-sm transition-all hover:border-primary/40 active:scale-[0.98]"
                 >
                   <Folder
-                    className={cn(
-                      "h-6 w-6 shrink-0",
-                      FOLDER_TONE[name] ?? "text-primary-glow",
-                    )}
+                    className={cn("h-6 w-6 shrink-0", toneFor(name))}
                   />
                   <div className="min-w-0">
                     <p className="truncate text-sm font-bold">{name}</p>
@@ -350,7 +406,28 @@ export function Remembrance() {
                   </div>
                 </button>
               ))}
+
+              <button
+                type="button"
+                onClick={() => {
+                  setCreateName("");
+                  setCreateColor("lavender");
+                  setCreating(true);
+                }}
+                className="flex items-center gap-3 rounded-2xl border border-dashed border-primary/40 bg-primary/5 p-4 text-left transition-all hover:border-primary/70 hover:bg-primary/10 active:scale-[0.98]"
+              >
+                <FolderPlus className="h-6 w-6 shrink-0 text-primary-glow" />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold text-primary-glow">
+                    New Folder
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Organise your vault
+                  </p>
+                </div>
+              </button>
             </motion.div>
+
           ) : (
             <motion.div
               key="list"
@@ -396,9 +473,10 @@ export function Remembrance() {
                   <FileText
                     className={cn(
                       "mt-0.5 h-4 w-4 shrink-0",
-                      FOLDER_TONE[note.category] ?? "text-primary-glow",
+                      toneFor(note.category),
                     )}
                   />
+
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-bold">{note.title}</p>
                     <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
@@ -540,10 +618,10 @@ export function Remembrance() {
                     disabled={!newFolder.trim()}
                     onClick={() => {
                       const name = newFolder.trim();
-                      if (!allFolders.includes(name))
-                        persistFolders([...customFolders, name]);
+                      addFolder(name);
                       void moveNote(menuNote, name);
                     }}
+
                     className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-40"
                   >
                     <Check className="h-4 w-4" /> Create & move here
@@ -554,8 +632,98 @@ export function Remembrance() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ---------- Create folder modal ---------- */}
+      <AnimatePresence>
+        {creating && (
+          <motion.div
+            key="create-folder"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end justify-center bg-background/70 backdrop-blur-sm sm:items-center"
+            onClick={() => setCreating(false)}
+          >
+            <motion.div
+              initial={{ y: 40, opacity: 0, scale: 0.98 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
+              exit={{ y: 40, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 320, damping: 30 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md rounded-t-3xl border border-white/10 bg-card/90 p-5 backdrop-blur-xl sm:rounded-3xl"
+            >
+              <div className="flex items-center gap-3 border-b border-white/5 pb-4">
+                <FolderPlus className="h-4 w-4 text-primary-glow" />
+                <p className="flex-1 text-sm font-bold">New folder</p>
+                <button
+                  onClick={() => setCreating(false)}
+                  aria-label="Close"
+                  className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="mt-4 space-y-4">
+                <input
+                  autoFocus
+                  value={createName}
+                  onChange={(e) => setCreateName(e.target.value)}
+                  maxLength={40}
+                  placeholder="Folder name"
+                  className="w-full rounded-xl border border-white/10 bg-background/50 px-3.5 py-2.5 text-sm focus:border-primary/50 focus:outline-none"
+                />
+
+                <div>
+                  <p className="mb-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                    Folder colour
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {FOLDER_COLORS.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        aria-label={c.label}
+                        onClick={() => setCreateColor(c.id)}
+                        className={cn(
+                          "flex h-11 w-11 items-center justify-center rounded-xl border transition-all",
+                          createColor === c.id
+                            ? "border-primary/60 bg-primary/15 scale-105"
+                            : "border-white/10 bg-background/40 hover:border-white/25",
+                        )}
+                      >
+                        <Folder className={cn("h-5 w-5", c.tone)} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={!createName.trim()}
+                  onClick={() => {
+                    const name = createName.trim();
+                    if (allFolders.includes(name)) {
+                      toast.error("That folder already exists.");
+                      return;
+                    }
+                    addFolder(name, createColor);
+                    setCreating(false);
+                    setFolder(name);
+                    toast.success(`Folder "${name}" created`);
+                  }}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-40"
+                >
+                  <Check className="h-4 w-4" /> Create folder
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
+
 }
 
 function SheetAction({
