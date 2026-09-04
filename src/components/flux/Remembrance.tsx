@@ -395,10 +395,7 @@ export function Remembrance() {
                   className="group flex items-center gap-3 rounded-2xl border border-white/10 bg-card/40 p-4 text-left backdrop-blur-sm transition-all hover:border-primary/40 active:scale-[0.98]"
                 >
                   <Folder
-                    className={cn(
-                      "h-6 w-6 shrink-0",
-                      FOLDER_TONE[name] ?? "text-primary-glow",
-                    )}
+                    className={cn("h-6 w-6 shrink-0", toneFor(name))}
                   />
                   <div className="min-w-0">
                     <p className="truncate text-sm font-bold">{name}</p>
@@ -409,7 +406,28 @@ export function Remembrance() {
                   </div>
                 </button>
               ))}
+
+              <button
+                type="button"
+                onClick={() => {
+                  setCreateName("");
+                  setCreateColor("lavender");
+                  setCreating(true);
+                }}
+                className="flex items-center gap-3 rounded-2xl border border-dashed border-primary/40 bg-primary/5 p-4 text-left transition-all hover:border-primary/70 hover:bg-primary/10 active:scale-[0.98]"
+              >
+                <FolderPlus className="h-6 w-6 shrink-0 text-primary-glow" />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold text-primary-glow">
+                    New Folder
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Organise your vault
+                  </p>
+                </div>
+              </button>
             </motion.div>
+
           ) : (
             <motion.div
               key="list"
