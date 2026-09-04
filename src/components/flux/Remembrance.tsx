@@ -617,10 +617,10 @@ export function Remembrance() {
                     disabled={!newFolder.trim()}
                     onClick={() => {
                       const name = newFolder.trim();
-                      if (!allFolders.includes(name))
-                        persistFolders([...customFolders, name]);
+                      addFolder(name);
                       void moveNote(menuNote, name);
                     }}
+
                     className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-40"
                   >
                     <Check className="h-4 w-4" /> Create & move here
