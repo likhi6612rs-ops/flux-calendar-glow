@@ -109,9 +109,10 @@ export function Remembrance() {
 
   /* ---------- long-press context menu ---------- */
   const [menuNote, setMenuNote] = useState<Note | null>(null);
-  const [menuMode, setMenuMode] = useState<"actions" | "move" | "new">(
-    "actions",
-  );
+  const [menuMode, setMenuMode] = useState<
+    "actions" | "move" | "new" | "copy" | "copy-new"
+  >("actions");
+
   const [newFolder, setNewFolder] = useState("");
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressed = useRef(false);
