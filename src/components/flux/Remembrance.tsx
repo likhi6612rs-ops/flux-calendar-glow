@@ -181,9 +181,21 @@ export function Remembrance() {
     return Array.from(set);
   }, [customFolders, notes]);
 
+  const normalizeUrl = (raw: string) =>
+    /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+
   const save = async () => {
     const text = draft.trim();
     if (!text || !user || saving) return;
+
+    // A bare pasted link becomes a bookmark: ask for a friendly name first.
+    if (BARE_URL_RE.test(text)) {
+      const url = normalizeUrl(text);
+      setLinkUrl(url);
+      setLinkName("");
+      return;
+    }
+
     setSaving(true);
     let category: string = "Ideas";
     let title = text.split("\n")[0].slice(0, 60);
@@ -219,6 +231,65 @@ export function Remembrance() {
     setDraft("");
     toast.success(`Filed under ${category}`);
   };
+
+  /** Saves a named bookmark straight into the dedicated Links folder. */
+  const saveLink = async () => {
+    if (!user || !linkUrl || savingLink) return;
+    const name = linkName.trim() || prettyUrl(linkUrl);
+    setSavingLink(true);
+    const { data, error } = await supabase
+      .from("notes")
+      .insert({
+        user_id: user.id,
+        title: name,
+        content: linkUrl,
+        url: linkUrl,
+        category: LINKS_FOLDER,
+        note_date: attachDate ? selectedDate : null,
+      })
+      .select("id, title, content, url, note_date, category, created_at")
+      .single();
+    setSavingLink(false);
+    if (error || !data) {
+      toast.error("Could not save that link.");
+      return;
+    }
+    setNotes((prev) => [data as Note, ...prev]);
+    setDraft("");
+    setLinkUrl(null);
+    setLinkName("");
+    toast.success(`Saved "${name}" to Links`);
+  };
+
+  /** Duplicates a memory into another folder, leaving the original in place. */
+  const copyNote = async (note: Note, target: string) => {
+    const to = target.trim();
+    if (!to || !user) {
+      setMenuNote(null);
+      return;
+    }
+    setMenuNote(null);
+    setNewFolder("");
+    const { data, error } = await supabase
+      .from("notes")
+      .insert({
+        user_id: user.id,
+        title: note.title,
+        content: note.content,
+        url: note.url,
+        category: to,
+        note_date: note.note_date,
+      })
+      .select("id, title, content, url, note_date, category, created_at")
+      .single();
+    if (error || !data) {
+      toast.error("Could not copy that memory.");
+      return;
+    }
+    setNotes((prev) => [data as Note, ...prev]);
+    toast.success(`Copied to ${to}`);
+  };
+
 
   const remove = async (id: string) => {
     setNotes((prev) => prev.filter((n) => n.id !== id));
