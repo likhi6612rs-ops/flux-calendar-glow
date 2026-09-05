@@ -5,6 +5,8 @@ import {
   ArrowLeft,
   CalendarDays,
   Check,
+  Copy,
+
   Folder,
   FolderPlus,
   Link as LinkIcon,
