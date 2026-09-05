@@ -662,6 +662,11 @@ export function Remembrance() {
                     onClick={() => setMenuMode("move")}
                   />
                   <SheetAction
+                    icon={Copy}
+                    label="Make a copy in another folder"
+                    onClick={() => setMenuMode("copy")}
+                  />
+                  <SheetAction
                     icon={FolderPlus}
                     label="Create a new folder and add to it"
                     onClick={() => setMenuMode("new")}
@@ -698,7 +703,30 @@ export function Remembrance() {
                 </div>
               )}
 
-              {menuMode === "new" && (
+              {menuMode === "copy" && (
+                <div className="mt-3 space-y-1">
+                  {allFolders
+                    .filter((f) => f !== menuNote.category)
+                    .map((f) => (
+                      <SheetAction
+                        key={f}
+                        icon={Copy}
+                        label={`Copy to ${f}`}
+                        onClick={() => copyNote(menuNote, f)}
+                      />
+                    ))}
+                  <SheetAction
+                    icon={FolderPlus}
+                    label="Copy into a new folder"
+                    onClick={() => setMenuMode("copy-new")}
+                  />
+                  <p className="pt-2 text-[11px] text-muted-foreground">
+                    The original stays where it is.
+                  </p>
+                </div>
+              )}
+
+              {(menuMode === "new" || menuMode === "copy-new") && (
                 <div className="mt-4 space-y-3">
                   <input
                     autoFocus
@@ -714,15 +742,19 @@ export function Remembrance() {
                     onClick={() => {
                       const name = newFolder.trim();
                       addFolder(name);
-                      void moveNote(menuNote, name);
+                      if (menuMode === "copy-new") void copyNote(menuNote, name);
+                      else void moveNote(menuNote, name);
                     }}
-
                     className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-40"
                   >
-                    <Check className="h-4 w-4" /> Create & move here
+                    <Check className="h-4 w-4" />
+                    {menuMode === "copy-new"
+                      ? "Create & copy here"
+                      : "Create & move here"}
                   </button>
                 </div>
               )}
+
             </motion.div>
           </motion.div>
         )}
