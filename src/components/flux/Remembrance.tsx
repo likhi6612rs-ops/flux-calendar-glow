@@ -552,7 +552,10 @@ export function Remembrance() {
                 </p>
               )}
 
-              {visible.map((note) => (
+              {visible.map((note) => {
+                const isBookmark =
+                  !!note.url && note.content.trim() === note.url.trim();
+                return (
                 <div
                   key={note.id}
                   onPointerDown={() => startPress(note)}
@@ -565,18 +568,50 @@ export function Remembrance() {
                   }}
                   className="group flex select-none items-start gap-3 rounded-2xl border border-white/10 bg-card/40 p-4 backdrop-blur-sm transition-colors hover:border-primary/30 active:border-primary/50"
                 >
-                  <FileText
-                    className={cn(
-                      "mt-0.5 h-4 w-4 shrink-0",
-                      toneFor(note.category),
-                    )}
-                  />
+                  {isBookmark ? (
+                    <LinkIcon
+                      className={cn(
+                        "mt-0.5 h-4 w-4 shrink-0",
+                        toneFor(note.category),
+                      )}
+                    />
+                  ) : (
+                    <FileText
+                      className={cn(
+                        "mt-0.5 h-4 w-4 shrink-0",
+                        toneFor(note.category),
+                      )}
+                    />
+                  )}
 
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold">{note.title}</p>
-                    <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-                      {note.content}
-                    </p>
+                    {isBookmark ? (
+                      <a
+                        href={note.url!}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        onClick={(e) => {
+                          if (longPressed.current) e.preventDefault();
+                        }}
+                        className="block min-w-0"
+                      >
+                        <p className="truncate text-sm font-bold group-hover:text-primary-glow">
+                          {note.title}
+                        </p>
+                        <p className="mt-1 truncate text-xs text-cyan-300/80">
+                          {prettyUrl(note.url!)}
+                        </p>
+                      </a>
+                    ) : (
+                      <>
+                        <p className="truncate text-sm font-bold">
+                          {note.title}
+                        </p>
+                        <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                          {note.content}
+                        </p>
+                      </>
+                    )}
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground/80">
                       <span className="rounded-full border border-white/10 px-2 py-0.5 font-semibold">
                         {note.category}
@@ -591,7 +626,7 @@ export function Remembrance() {
                           <Shuffle className="h-3 w-3" /> Unbound
                         </span>
                       )}
-                      {note.url && (
+                      {note.url && !isBookmark && (
                         <a
                           href={note.url}
                           target="_blank"
@@ -612,7 +647,9 @@ export function Remembrance() {
                     <FolderInput className="h-3.5 w-3.5" />
                   </button>
                 </div>
-              ))}
+                );
+              })}
+
             </motion.div>
           )}
         </AnimatePresence>
