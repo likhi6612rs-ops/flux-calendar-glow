@@ -5,6 +5,8 @@ import {
   ArrowLeft,
   CalendarDays,
   Check,
+  Copy,
+
   Folder,
   FolderPlus,
   Link as LinkIcon,
@@ -109,9 +111,10 @@ export function Remembrance() {
 
   /* ---------- long-press context menu ---------- */
   const [menuNote, setMenuNote] = useState<Note | null>(null);
-  const [menuMode, setMenuMode] = useState<"actions" | "move" | "new">(
-    "actions",
-  );
+  const [menuMode, setMenuMode] = useState<
+    "actions" | "move" | "new" | "copy" | "copy-new"
+  >("actions");
+
   const [newFolder, setNewFolder] = useState("");
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressed = useRef(false);
@@ -181,9 +184,21 @@ export function Remembrance() {
     return Array.from(set);
   }, [customFolders, notes]);
 
+  const normalizeUrl = (raw: string) =>
+    /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+
   const save = async () => {
     const text = draft.trim();
     if (!text || !user || saving) return;
+
+    // A bare pasted link becomes a bookmark: ask for a friendly name first.
+    if (BARE_URL_RE.test(text)) {
+      const url = normalizeUrl(text);
+      setLinkUrl(url);
+      setLinkName("");
+      return;
+    }
+
     setSaving(true);
     let category: string = "Ideas";
     let title = text.split("\n")[0].slice(0, 60);
@@ -219,6 +234,65 @@ export function Remembrance() {
     setDraft("");
     toast.success(`Filed under ${category}`);
   };
+
+  /** Saves a named bookmark straight into the dedicated Links folder. */
+  const saveLink = async () => {
+    if (!user || !linkUrl || savingLink) return;
+    const name = linkName.trim() || prettyUrl(linkUrl);
+    setSavingLink(true);
+    const { data, error } = await supabase
+      .from("notes")
+      .insert({
+        user_id: user.id,
+        title: name,
+        content: linkUrl,
+        url: linkUrl,
+        category: LINKS_FOLDER,
+        note_date: attachDate ? selectedDate : null,
+      })
+      .select("id, title, content, url, note_date, category, created_at")
+      .single();
+    setSavingLink(false);
+    if (error || !data) {
+      toast.error("Could not save that link.");
+      return;
+    }
+    setNotes((prev) => [data as Note, ...prev]);
+    setDraft("");
+    setLinkUrl(null);
+    setLinkName("");
+    toast.success(`Saved "${name}" to Links`);
+  };
+
+  /** Duplicates a memory into another folder, leaving the original in place. */
+  const copyNote = async (note: Note, target: string) => {
+    const to = target.trim();
+    if (!to || !user) {
+      setMenuNote(null);
+      return;
+    }
+    setMenuNote(null);
+    setNewFolder("");
+    const { data, error } = await supabase
+      .from("notes")
+      .insert({
+        user_id: user.id,
+        title: note.title,
+        content: note.content,
+        url: note.url,
+        category: to,
+        note_date: note.note_date,
+      })
+      .select("id, title, content, url, note_date, category, created_at")
+      .single();
+    if (error || !data) {
+      toast.error("Could not copy that memory.");
+      return;
+    }
+    setNotes((prev) => [data as Note, ...prev]);
+    toast.success(`Copied to ${to}`);
+  };
+
 
   const remove = async (id: string) => {
     setNotes((prev) => prev.filter((n) => n.id !== id));
@@ -480,7 +554,10 @@ export function Remembrance() {
                 </p>
               )}
 
-              {visible.map((note) => (
+              {visible.map((note) => {
+                const isBookmark =
+                  !!note.url && note.content.trim() === note.url.trim();
+                return (
                 <div
                   key={note.id}
                   onPointerDown={() => startPress(note)}
@@ -493,18 +570,50 @@ export function Remembrance() {
                   }}
                   className="group flex select-none items-start gap-3 rounded-2xl border border-white/10 bg-card/40 p-4 backdrop-blur-sm transition-colors hover:border-primary/30 active:border-primary/50"
                 >
-                  <FileText
-                    className={cn(
-                      "mt-0.5 h-4 w-4 shrink-0",
-                      toneFor(note.category),
-                    )}
-                  />
+                  {isBookmark ? (
+                    <LinkIcon
+                      className={cn(
+                        "mt-0.5 h-4 w-4 shrink-0",
+                        toneFor(note.category),
+                      )}
+                    />
+                  ) : (
+                    <FileText
+                      className={cn(
+                        "mt-0.5 h-4 w-4 shrink-0",
+                        toneFor(note.category),
+                      )}
+                    />
+                  )}
 
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold">{note.title}</p>
-                    <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-                      {note.content}
-                    </p>
+                    {isBookmark ? (
+                      <a
+                        href={note.url!}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        onClick={(e) => {
+                          if (longPressed.current) e.preventDefault();
+                        }}
+                        className="block min-w-0"
+                      >
+                        <p className="truncate text-sm font-bold group-hover:text-primary-glow">
+                          {note.title}
+                        </p>
+                        <p className="mt-1 truncate text-xs text-cyan-300/80">
+                          {prettyUrl(note.url!)}
+                        </p>
+                      </a>
+                    ) : (
+                      <>
+                        <p className="truncate text-sm font-bold">
+                          {note.title}
+                        </p>
+                        <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                          {note.content}
+                        </p>
+                      </>
+                    )}
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground/80">
                       <span className="rounded-full border border-white/10 px-2 py-0.5 font-semibold">
                         {note.category}
@@ -519,7 +628,7 @@ export function Remembrance() {
                           <Shuffle className="h-3 w-3" /> Unbound
                         </span>
                       )}
-                      {note.url && (
+                      {note.url && !isBookmark && (
                         <a
                           href={note.url}
                           target="_blank"
@@ -540,7 +649,9 @@ export function Remembrance() {
                     <FolderInput className="h-3.5 w-3.5" />
                   </button>
                 </div>
-              ))}
+                );
+              })}
+
             </motion.div>
           )}
         </AnimatePresence>
@@ -590,6 +701,11 @@ export function Remembrance() {
                     onClick={() => setMenuMode("move")}
                   />
                   <SheetAction
+                    icon={Copy}
+                    label="Make a copy in another folder"
+                    onClick={() => setMenuMode("copy")}
+                  />
+                  <SheetAction
                     icon={FolderPlus}
                     label="Create a new folder and add to it"
                     onClick={() => setMenuMode("new")}
@@ -626,7 +742,30 @@ export function Remembrance() {
                 </div>
               )}
 
-              {menuMode === "new" && (
+              {menuMode === "copy" && (
+                <div className="mt-3 space-y-1">
+                  {allFolders
+                    .filter((f) => f !== menuNote.category)
+                    .map((f) => (
+                      <SheetAction
+                        key={f}
+                        icon={Copy}
+                        label={`Copy to ${f}`}
+                        onClick={() => copyNote(menuNote, f)}
+                      />
+                    ))}
+                  <SheetAction
+                    icon={FolderPlus}
+                    label="Copy into a new folder"
+                    onClick={() => setMenuMode("copy-new")}
+                  />
+                  <p className="pt-2 text-[11px] text-muted-foreground">
+                    The original stays where it is.
+                  </p>
+                </div>
+              )}
+
+              {(menuMode === "new" || menuMode === "copy-new") && (
                 <div className="mt-4 space-y-3">
                   <input
                     autoFocus
@@ -642,21 +781,93 @@ export function Remembrance() {
                     onClick={() => {
                       const name = newFolder.trim();
                       addFolder(name);
-                      void moveNote(menuNote, name);
+                      if (menuMode === "copy-new") void copyNote(menuNote, name);
+                      else void moveNote(menuNote, name);
                     }}
-
                     className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-40"
                   >
-                    <Check className="h-4 w-4" /> Create & move here
+                    <Check className="h-4 w-4" />
+                    {menuMode === "copy-new"
+                      ? "Create & copy here"
+                      : "Create & move here"}
                   </button>
                 </div>
               )}
+
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ---------- Link naming prompt ---------- */}
+      <AnimatePresence>
+        {linkUrl && (
+          <motion.div
+            key="link-name"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end justify-center bg-background/70 backdrop-blur-sm sm:items-center"
+            onClick={() => setLinkUrl(null)}
+          >
+            <motion.div
+              initial={{ y: 40, opacity: 0, scale: 0.98 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
+              exit={{ y: 40, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 320, damping: 30 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md rounded-t-3xl border border-white/10 bg-card/90 p-5 backdrop-blur-xl sm:rounded-3xl"
+            >
+              <div className="flex items-center gap-3 border-b border-white/5 pb-4">
+                <LinkIcon className="h-4 w-4 text-cyan-300" />
+                <p className="flex-1 text-sm font-bold">
+                  What is the name of this link?
+                </p>
+                <button
+                  onClick={() => setLinkUrl(null)}
+                  aria-label="Close"
+                  className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="mt-4 space-y-4">
+                <p className="truncate rounded-xl border border-white/10 bg-background/40 px-3.5 py-2.5 text-xs text-cyan-300/80">
+                  {prettyUrl(linkUrl)}
+                </p>
+                <input
+                  autoFocus
+                  value={linkName}
+                  onChange={(e) => setLinkName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") void saveLink();
+                  }}
+                  maxLength={60}
+                  placeholder="e.g. Physics revision playlist"
+                  className="w-full rounded-xl border border-white/10 bg-background/50 px-3.5 py-2.5 text-sm focus:border-primary/50 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  disabled={savingLink}
+                  onClick={() => void saveLink()}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-40"
+                >
+                  {savingLink ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Check className="h-4 w-4" />
+                  )}
+                  Save to Links
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* ---------- Create folder modal ---------- */}
+
       <AnimatePresence>
         {creating && (
           <motion.div
