@@ -799,7 +799,75 @@ export function Remembrance() {
         )}
       </AnimatePresence>
 
+      {/* ---------- Link naming prompt ---------- */}
+      <AnimatePresence>
+        {linkUrl && (
+          <motion.div
+            key="link-name"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end justify-center bg-background/70 backdrop-blur-sm sm:items-center"
+            onClick={() => setLinkUrl(null)}
+          >
+            <motion.div
+              initial={{ y: 40, opacity: 0, scale: 0.98 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
+              exit={{ y: 40, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 320, damping: 30 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md rounded-t-3xl border border-white/10 bg-card/90 p-5 backdrop-blur-xl sm:rounded-3xl"
+            >
+              <div className="flex items-center gap-3 border-b border-white/5 pb-4">
+                <LinkIcon className="h-4 w-4 text-cyan-300" />
+                <p className="flex-1 text-sm font-bold">
+                  What is the name of this link?
+                </p>
+                <button
+                  onClick={() => setLinkUrl(null)}
+                  aria-label="Close"
+                  className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="mt-4 space-y-4">
+                <p className="truncate rounded-xl border border-white/10 bg-background/40 px-3.5 py-2.5 text-xs text-cyan-300/80">
+                  {prettyUrl(linkUrl)}
+                </p>
+                <input
+                  autoFocus
+                  value={linkName}
+                  onChange={(e) => setLinkName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") void saveLink();
+                  }}
+                  maxLength={60}
+                  placeholder="e.g. Physics revision playlist"
+                  className="w-full rounded-xl border border-white/10 bg-background/50 px-3.5 py-2.5 text-sm focus:border-primary/50 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  disabled={savingLink}
+                  onClick={() => void saveLink()}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-40"
+                >
+                  {savingLink ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Check className="h-4 w-4" />
+                  )}
+                  Save to Links
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ---------- Create folder modal ---------- */}
+
       <AnimatePresence>
         {creating && (
           <motion.div
