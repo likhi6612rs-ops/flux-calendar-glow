@@ -63,7 +63,8 @@ export const classifyNote = createServerFn({ method: "POST" })
         system: [
           "You file notes into a personal Remembrance vault (a memory archive).",
           `Pick exactly one folder from this list: ${folders.join(", ")}.`,
-          "Guidance for the default folders: Study (learning, revision, concepts), Coursework (assignments, deadlines, submissions, exams), Ideas (projects, inspiration, links to explore), Personal (life, health, routines, money, people).",
+          "Guidance for the default folders: Study (learning, revision, concepts — ONLY when the note is clearly about studying), Coursework (assignments, deadlines, submissions, exams), Ideas (projects, inspiration, links to explore), Personal (life, health, routines, money, people).",
+          "Do NOT default to Study. If the content does not clearly fit a specific folder, choose Ideas.",
           "Also write a short 3-6 word title summarising the note.",
           lessons
             ? `Learned preferences from this user's own corrections — follow these patterns closely:\n${lessons}`
