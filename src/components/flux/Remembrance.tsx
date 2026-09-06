@@ -191,10 +191,12 @@ export function Remembrance() {
     const text = draft.trim();
     if (!text || !user || saving) return;
 
-    // A bare pasted link becomes a bookmark: ask for a friendly name first.
-    if (BARE_URL_RE.test(text)) {
-      const url = normalizeUrl(text);
-      setLinkUrl(url);
+    // Any URL anywhere in the text is intercepted before auto-sorting:
+    // it becomes a named bookmark instead of a misfiled note.
+    const urlMatch =
+      text.match(URL_RE)?.[0] ?? (BARE_URL_RE.test(text) ? text : undefined);
+    if (urlMatch) {
+      setLinkUrl(normalizeUrl(urlMatch));
       setLinkName("");
       return;
     }
@@ -235,33 +237,48 @@ export function Remembrance() {
     toast.success(`Filed under ${category}`);
   };
 
-  /** Saves a named bookmark straight into the dedicated Links folder. */
+  /**
+   * Saves a named bookmark. It always lands in the dedicated Links folder;
+   * when the user also picked a manual folder, a copy is filed there too.
+   */
   const saveLink = async () => {
     if (!user || !linkUrl || savingLink) return;
     const name = linkName.trim() || prettyUrl(linkUrl);
+    const manual = draftFolder !== "auto" && draftFolder !== LINKS_FOLDER;
     setSavingLink(true);
+
+    const base = {
+      user_id: user.id,
+      title: name,
+      content: linkUrl,
+      url: linkUrl,
+      note_date: attachDate ? selectedDate : null,
+    };
+    const rows = manual
+      ? [
+          { ...base, category: draftFolder },
+          { ...base, category: LINKS_FOLDER },
+        ]
+      : [{ ...base, category: LINKS_FOLDER }];
+
     const { data, error } = await supabase
       .from("notes")
-      .insert({
-        user_id: user.id,
-        title: name,
-        content: linkUrl,
-        url: linkUrl,
-        category: LINKS_FOLDER,
-        note_date: attachDate ? selectedDate : null,
-      })
-      .select("id, title, content, url, note_date, category, created_at")
-      .single();
+      .insert(rows)
+      .select("id, title, content, url, note_date, category, created_at");
     setSavingLink(false);
-    if (error || !data) {
+    if (error || !data?.length) {
       toast.error("Could not save that link.");
       return;
     }
-    setNotes((prev) => [data as Note, ...prev]);
+    setNotes((prev) => [...(data as Note[]).reverse(), ...prev]);
     setDraft("");
     setLinkUrl(null);
     setLinkName("");
-    toast.success(`Saved "${name}" to Links`);
+    toast.success(
+      manual
+        ? `Saved "${name}" to ${draftFolder} + Links`
+        : `Saved "${name}" to Links`,
+    );
   };
 
   /** Duplicates a memory into another folder, leaving the original in place. */
