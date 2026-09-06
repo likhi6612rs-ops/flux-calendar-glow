@@ -24,8 +24,10 @@ export const classifyNote = createServerFn({ method: "POST" })
     const folders = Array.from(
       new Set([...(data.folders ?? []), ...NOTE_CATEGORIES]),
     );
+    // Never fall back to the first folder alphabetically — that biases
+    // everything into "Study". "Ideas" is the neutral catch-all.
     const fallback = {
-      category: folders[0] ?? "Ideas",
+      category: folders.find((f) => f === "Ideas") ?? "Ideas",
       title: data.text.slice(0, 48),
     };
 

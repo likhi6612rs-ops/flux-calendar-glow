@@ -191,10 +191,12 @@ export function Remembrance() {
     const text = draft.trim();
     if (!text || !user || saving) return;
 
-    // A bare pasted link becomes a bookmark: ask for a friendly name first.
-    if (BARE_URL_RE.test(text)) {
-      const url = normalizeUrl(text);
-      setLinkUrl(url);
+    // Any URL anywhere in the text is intercepted before auto-sorting:
+    // it becomes a named bookmark instead of a misfiled note.
+    const urlMatch =
+      text.match(URL_RE)?.[0] ?? (BARE_URL_RE.test(text) ? text : undefined);
+    if (urlMatch) {
+      setLinkUrl(normalizeUrl(urlMatch));
       setLinkName("");
       return;
     }
